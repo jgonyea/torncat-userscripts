@@ -1,10 +1,10 @@
 // ==UserScript==
-// @name         Hide Okay Status
+// @name         Find Revive Targets
 // @namespace    torncat
-// @version      0.1.1
+// @version      0.1.2
 // @description  This script hides players with 'Okay' status to find revive targets faster.
 // @author       Wingmanjd[2127679]
-// @match        https://www.torn.com/*
+// @match        https://www.torn.com/factions.php
 // @grant        none
 // ==/UserScript==
 
