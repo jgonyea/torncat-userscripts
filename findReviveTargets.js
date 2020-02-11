@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Find Revive Targets
 // @namespace    torncat
-// @version      0.1.3
+// @version      0.1.4
 // @description  This script hides players with 'Okay' status to find revive targets faster.
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/factions.php*
@@ -9,20 +9,20 @@
 // ==/UserScript==
 
 (function() {
-    'use strict';
+    "use strict";
     const D = document;
     const $$ = (selector, startNode = D) => [...startNode.querySelectorAll(selector)];
 
-    var greenStatusList = $$('.status .t-green');
-    var redStatusList = $$('.status .t-red');
+    var greenStatusList = $$(".status .t-green");
+    var redStatusList = $$(".status .t-red");
     greenStatusList.forEach(el => {
-        var line = $(el).closest('li');
+        var line = $(el).closest("li");
         $(line).hide();
     });
 
     redStatusList.forEach(el => {
-        if ($(el).html() == 'Traveling' || $(el).html() == "Fallen") {
-            var line = $(el).closest('li');
+        if ($(el).html() == "Traveling" || $(el).html() == "Fallen") {
+            var line = $(el).closest("li");
             $(line).hide();
         }
     });
