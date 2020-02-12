@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Torn User Peek
 // @namespace    torncat
-// @version      0.1.0
+// @version      0.1.1
 // @description  Adds new tooltip with user details on user badges.
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/factions.php*
