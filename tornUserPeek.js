@@ -1,11 +1,11 @@
 // ==UserScript==
 // @name         Torn User Peek
 // @namespace    torncat
-// @version      0.1
+// @version      0.1.0
 // @description  Adds new tooltip with user details on user badges.
 // @author       Wingmanjd[2127679]
-// @match        https://www.torn.com/*
-// @require      https://code.jquery.com/jquery-3.4.1.min.js
+// @match        https://www.torn.com/factions.php*
+// @match        https://www.torn.com/userlist.php*
 // @resource     fa https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css
 // @grant        GM_addStyle
 // @grant        GM_getResourceText
@@ -22,29 +22,52 @@ var asked = false;
     console.debug(data);
     saveOwnData();
     const HoverDelay = 1000;
-    $(document).on('click', '.content', function(){
-        $(document).ready(function(){
-        // Wait for intent to prevent spamming API.
+    $( document ).ajaxComplete(function( event, xhr, settings ) {
+        if (hideAjaxUrl(settings.url) == false) {
+            // console.debug('New URL:' + settings.url);
+            // Wait for intent to prevent spamming API.
             $('.user.name').hover(function() {
-                console.debug('TUP: hover intent detection started');
                 var player = this;
                 addTooltip(player);
                 var t = setTimeout(function() {
-                    console.debug('TUP: hover intent detected');
                     var url = 'https://api.torn.com/user/' + findPlayerID(player) + '?selections=&key=' + data.apikey;
-                    apiCall(url, (d) => { 
+                    apiCall(url, (d) => {
                         replaceTooltip(d, player);
                     });
-
-                //callTorn(player);
                 }, HoverDelay);
                 $(this).data('timeout', t);
             }, function() {
                 clearTimeout($(this).data('timeout'));
             });
-        });
+        }
     });
 })();
+
+
+function hideAjaxUrl(url) {
+    var hideURLList = [
+        'onlinestatus.php',
+        'sidebarAjaxAction.php',
+        'tornMobileApp.php',
+        'missionChecker.php',
+        'api.torn.com'
+    ];
+
+    var validURLList = [
+        'userlist.php',
+        'factions.php'
+    ];
+
+    for (let el of hideURLList) {
+        if (url.match(el)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
 
 // Load localStorage data.
 function loadData(){
@@ -145,26 +168,29 @@ function apiCall(url, cb){
 // Adds html to page for tooltip at currently hovered user badge.
 function addTooltip(player) {
     var parent =  $(player).parent();
-    if ($(parent).has('div.jdtooltiptext').length != 1) {
-        $(parent).closest('div').addClass('jdtooltip');
-        var tooltipHtml = '<div class="jdtooltiptext jdtooltip-right">Loading...</div>';
+    if ($(parent).has('div.tup-tooltiptext').length != 1) {
+        $(parent).closest('div').addClass('tup-tooltip');
+        var tooltipHtml = '<div class="tup-tooltiptext tup-tooltip-right"><ul><li>Loading...</li></ul></div>';
         parent.append(tooltipHtml);
     }
 }
 
 function replaceTooltip(response, player) {
-    console.debug('Response', response);
     if(response.error) {
         getApiKey(true);
     } else {
-        var replacementText = '';
-        replacementText += 'Life: ' + response.life.current + '/' + response.life.maximum + '</br>';
-        replacementText += 'Level: ' + response.level + '</br>';
-        replacementText += 'Age: ' + response.age + '</br>';
-        replacementText += 'Last Action: ' + response.last_action.relative + '</br>';
-        console.debug(replacementText);
-        var tooltip = $(player).siblings('.jdtooltiptext');
-        console.debug(tooltip);
+        var replacementText = '<ul>';
+        if (response.status.state == 'Okay') {
+            replacementText += '<li class="tup-button"><a href="https://www.torn.com/loader.php?sid=attack&user2ID='+ response.player_id + '"> Attack </a></li>';
+        } else if (response.status.state == 'Hospital') {
+            replacementText += '<li class="tup-button"><a href="https://www.torn.com/profiles.php?XID=' + response.player_id + '"> Revive </a></li>';
+        }
+        replacementText += '<li><strong>Life:</strong> ' + response.life.current + '/' + response.life.maximum + '</li>';
+        replacementText += '<li><strong>Level:</strong> ' + response.level + '</li>';
+        replacementText += '<li><strong>Age:</strong> ' + response.age + '</li>';
+        replacementText += '<li><strong>Last Action:</strong> ' + response.last_action.relative + '</li>';
+        replacementText += '</ul>';
+        var tooltip = $(player).siblings('.tup-tooltiptext');
         $(tooltip[0]).html(replacementText);
     }
 }
@@ -179,59 +205,76 @@ function findPlayerID(userElement) {
 }
 
 // Custom styling.
-//var styles ='.jdtooltip{position:relative;display:inline-block;border-bottom:1px dotted #000}.jdtooltip .jdtooltiptext{visibility:hidden;width:160px;background-color:#555;color:#fff;text-align:left;border-radius:6px;padding:5px 5px 5px 15px;position:absolute;z-index:1;bottom:125%;left:120%;margin-left:-60px;opacity:0;transition:opacity 0.3s;box-shadow:20px 20px 50px 15px grey}.jdtooltip .jdtooltiptext::after{content:"";position:absolute;top:100%;left:120%;margin-left:-5px;padding-left:10px;border-width:5px;border-style:solid;border-color:#555 transparent transparent transparent;z-index:1000}.jdtooltip:hover .jdtooltiptext{visibility:visible;opacity:1}';
+//var styles ='.tup-tooltip{position:relative;display:inline-block;border-bottom:1px dotted #000}.tup-tooltip .tup-tooltiptext{visibility:hidden;width:160px;background-color:#555;color:#fff;text-align:left;border-radius:6px;padding:5px 5px 5px 15px;position:absolute;z-index:1;bottom:125%;left:120%;margin-left:-60px;opacity:0;transition:opacity 0.3s;box-shadow:20px 20px 50px 15px grey}.tup-tooltip .tup-tooltiptext::after{content:"";position:absolute;top:100%;left:120%;margin-left:-5px;padding-left:10px;border-width:5px;border-style:solid;border-color:#555 transparent transparent transparent;z-index:1000}.tup-tooltip:hover .tup-tooltiptext{visibility:visible;opacity:1}';
 var styles=`
-.jdtooltip {
-    position: relative;
+.tup-tooltip {
     display: inline-block;
+    position: relative;
   }
 
-  .jdtooltip .jdtooltiptext {
-    visibility: hidden;
-    width: 160px;
+  .tup-tooltip .tup-tooltiptext {
     background-color: #555;
-    color: #fff;
-    text-align: left;
     border-radius: 6px;
-    padding: 5px 5px 5px 15px;
-    position: absolute;
-    z-index: 1000;
     bottom: 25%;
+    box-shadow: 20px 20px 50px 15px grey
+    color: #fff;
     left: 120%;
     margin-left: -60px;
     opacity: 0;
+    padding: 5px 5px 5px 15px;
+    position: absolute;
+    text-align: left;
     transition: opacity .3s;
-    box-shadow: 20px 20px 50px 15px grey
+    visibility: hidden;
+    width: 160px;
+    z-index: 1000;
+
   }
 
-  .jdtooltip .jdtooltiptext::after {
+  .tup-tooltip .tup-tooltiptext::after {
+    border-color: #555 transparent transparent transparent;
+    border-style: solid;
+    border-width: 5px;
     content: "";
-    position: absolute;
-    top: 100%;
     left: 50%;
     margin-left: -5px;
     padding-left: 10px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: #555 transparent transparent transparent;
-    z-index: 100000;
+    position: absolute;
+    top: 100%;
+    z-index: 1000;
   }
 
-  .jdtooltip:hover .jdtooltiptext {
-    visibility: visible;
+
+  .tup-tooltip:hover .tup-tooltiptext {
     opacity: 1;
-    z-index: auto;
+    visibility: visible;
   }
+
+  .tup-tooltiptext ul li {
+    color: #fff;
+    background-image: none !important;
+    font-size: 12px;
+ }
+ .tup-tooltiptext ul li a {
+    color: #fff;
+    text-decoration: underline;
+}
+
+.tup-tooltiptext .tup-button {
+    background: #fff;
+    color: #555;
+}
+
+.tup-button {
+
+}
+
+
 `;
 
 
+// eslint-disable-next-line no-undef
 GM_addStyle(styles);
+// eslint-disable-next-line no-undef
 GM_addStyle(GM_getResourceText('fa'));
 
-// stub for replicating tampermonkey scripting.
-function GM_addStyle(style) {
-    var styleSheet = document.createElement('style');
-    styleSheet.type = 'text/css';
-    styleSheet.innerText = style;
-    document.head.appendChild(styleSheet);
-}
