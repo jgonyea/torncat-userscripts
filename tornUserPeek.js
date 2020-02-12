@@ -6,6 +6,7 @@
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/factions.php*
 // @match        https://www.torn.com/userlist.php*
+// @match        https://www.torn.com/jailview.php*
 // @resource     fa https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css
 // @grant        GM_addStyle
 // @grant        GM_getResourceText
@@ -19,29 +20,38 @@ var asked = false;
     console.debug('Torn User Peek (TUP) started');
     loadData();
     data.me = {'empty': true};
-    console.debug(data);
     saveOwnData();
-    const HoverDelay = 1000;
+    // Some pages load user lists via ajax.  This reloads the event attaching to the new list.
     $( document ).ajaxComplete(function( event, xhr, settings ) {
         if (hideAjaxUrl(settings.url) == false) {
-            // console.debug('New URL:' + settings.url);
             // Wait for intent to prevent spamming API.
-            $('.user.name').hover(function() {
-                var player = this;
-                addTooltip(player);
-                var t = setTimeout(function() {
-                    var url = 'https://api.torn.com/user/' + findPlayerID(player) + '?selections=&key=' + data.apikey;
-                    apiCall(url, (d) => {
-                        replaceTooltip(d, player);
-                    });
-                }, HoverDelay);
-                $(this).data('timeout', t);
-            }, function() {
-                clearTimeout($(this).data('timeout'));
-            });
+            attachEvent();
         }
     });
+
+    // Some pages don't load the user list via ajax.  Need to call the event attaching manually.
+    if (window.location.href.match('step=profile') || window.location.href.match('jailview.php')){
+        console.debug('Fired manual event attachment');
+        attachEvent();
+    }
 })();
+
+function attachEvent(){
+    const HoverDelay = 1000;
+    $('.user.name').hover(function() {
+        var player = this;
+        addTooltip(player);
+        var t = setTimeout(function() {
+            var url = 'https://api.torn.com/user/' + findPlayerID(player) + '?selections=&key=' + data.apikey;
+            apiCall(url, (d) => {
+                replaceTooltip(d, player);
+            });
+        }, HoverDelay);
+        $(this).data('timeout', t);
+    }, function() {
+        clearTimeout($(this).data('timeout'));
+    });
+}
 
 
 function hideAjaxUrl(url) {
@@ -183,8 +193,10 @@ function replaceTooltip(response, player) {
         if (response.status.state == 'Okay') {
             replacementText += '<li class="tup-button"><a href="https://www.torn.com/loader.php?sid=attack&user2ID='+ response.player_id + '"> Attack </a></li>';
         } else if (response.status.state == 'Hospital') {
-            replacementText += '<li class="tup-button"><a href="https://www.torn.com/profiles.php?XID=' + response.player_id + '"> Revive </a></li>';
-        }
+            replacementText += '<li class="tup-button"><a href="https://www.torn.com/profiles.php?XID=' + response.player_id + '">&nbsp;Revive&nbsp;</a></li>';
+        } else if (response.status.state == 'Jail') {
+            replacementText += '<li class="tup-button"><a href="https://www.torn.com/profiles.php?XID=' + response.player_id + '">&nbsp;Bust/ Buy&nbsp;</a></li>';
+        } 
         replacementText += '<li><strong>Life:</strong> ' + response.life.current + '/' + response.life.maximum + '</li>';
         replacementText += '<li><strong>Level:</strong> ' + response.level + '</li>';
         replacementText += '<li><strong>Age:</strong> ' + response.age + '</li>';
