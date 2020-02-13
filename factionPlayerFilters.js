@@ -1,17 +1,22 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      0.2.0
+// @version      0.2.1
 // @description  This script adds player filters on faction pages.
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/factions.php*
 // @grant        GM_addStyle
 // ==/UserScript==
 
+
+var data = data || {};
+
 (function() {
     'use strict';
 
     console.debug('Find Revive Targets (FRT) started');
+    loadData();
+    save();
     // Some pages load user lists via AJAX.  This reloads the event attaching to the new list.
     $( document ).ajaxComplete(function( event, xhr, settings ) {
         if (hideAjaxUrl(settings.url) == false) {
@@ -26,6 +31,26 @@
 
 })();
 
+// Load localStorage data.
+function loadData(){
+    data = localStorage.getItem('torncat.factionFilters');
+    if(data === undefined || data === null) {
+        // Default settings
+        data = {
+            checked:{
+                attack: false,
+                revive: false
+            }
+        };
+    }else{
+        data = JSON.parse(data);
+    }
+}
+
+// Save localStorage data.
+function save(){
+    localStorage.setItem('torncat.factionFilters', JSON.stringify(data));
+}
 
 /**
  * Toggles user rows based on param toggleType.
@@ -79,19 +104,36 @@ function displayTCWidget(){
     `;
     var widgetLocationsLength = $('.faction-info-wrap.another-faction').length;
     $(widgetHTML).insertBefore($('.faction-info-wrap.another-faction')[widgetLocationsLength - 1]);
+
+    // Load cached logic between page refreshes.
+    if (data.checked.attack == true){
+        $(attackCheck).prop('checked', true);
+        toggleUserRow('attack');
+    }
+    if (data.checked.revive == true){
+        $(reviveCheck).prop('checked', true);
+        toggleUserRow('revive');
+    }
+
     $(reviveCheck).change(function() {
         toggleUserRow('revive');
         if ($(attackCheck).prop('checked')){
             $(attackCheck).prop('checked', false);
             toggleUserRow('attack');
+            data.checked.attack = false;
         }
+        data.checked.revive = !data.checked.revive;
+        save();
     });
     $(attackCheck).change(function() {
         toggleUserRow('attack');
         if ($(reviveCheck).prop('checked')){
             $(reviveCheck).prop('checked', false);
             toggleUserRow('revive');
+            data.checked.revive = false;
         }
+        data.checked.attack = !data.checked.attack;
+        save();
     });
 }
 
