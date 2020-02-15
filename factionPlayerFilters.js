@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      0.2.4
+// @version      0.2.5
 // @description  This script adds player filters on faction pages.
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/factions.php*
@@ -41,7 +41,7 @@ function loadData(){
             checked:{
                 attack: false,
                 revive: false,
-                online: false,
+                offline: false,
                 autorefresh: false
             }
         };
@@ -145,6 +145,11 @@ function displayTCWidget(){
         toggleUserRow('revive');
     }
 
+    if (data.checked.offline == true){
+        $(offlineCheck).prop('checked', true);
+        toggleUserRow('offline');
+    }
+
     if (data.checked.autorefresh == true){
         $(autorefreshCheck).prop('checked', true);
         startTimer();
@@ -174,10 +179,10 @@ function displayTCWidget(){
         save();
     });
 
-    // Watch for event changes on the Online only mode checkbox.
+    // Watch for event changes on the Hide Offline mode checkbox.
     $(offlineCheck).change(function() {
         toggleUserRow('offline');
-        data.checked.online = !data.checked.online;
+        data.checked.offline = !data.checked.offline;
         save();
     });
 
