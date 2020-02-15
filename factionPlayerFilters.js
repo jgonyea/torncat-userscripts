@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      0.2.1
+// @version      0.2.2
 // @description  This script adds player filters on faction pages.
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/factions.php*
@@ -84,23 +84,32 @@ function displayTCWidget(){
     var attackCheck = '#tc-filter-attack';
 
     var widgetHTML = `
-    <div class="torncat-widgets torncat-widgets--top top-round">
-        <article class="torncat-widget ">
-            <header class="torncat-widget__header ">
-                <h3>TornCAT Filters</h3>
-                <span class="torncat-widget__title "></span>
-                <label>
-                    <span class="torncat-label ">Revive Mode</span>
-                    <input class="torncat-checkbox" id="tc-filter-revive" type="checkbox">
-                </label>
-                <label>
-                <span class="torncat-label">Attack Mode</span>
-                <input class="torncat-checkbox" id="tc-filter-attack" type="checkbox">
-            </label>
-
-            </header>
-        </article>
+    <div class="msg-info-wrap">
+        <div class="info-msg-cont  border-round m-top10">
+		    <div class="info-msg border-round">
+                <a class="torncat-icon" href="http://torncat.servegame.com" title="TornCAT" target=”_blank” rel=”noopener noreferrer”></a>
+                <div class="delimiter">
+                    <div class="msg right-round" tabindex="0" role="alert">
+                        <span class="torncat-widget__title "></span>
+                        <label class="torncat-filter">
+                            <span class="torncat-label ">Revive Mode</span>
+                            <input class="torncat-checkbox" id="tc-filter-revive" type="checkbox">
+                        </label>
+                        <label class="torncat-filter torncat-filter-middle">
+                            <span class="torncat-label">Attack Mode</span>
+                            <input class="torncat-checkbox" id="tc-filter-attack" type="checkbox">
+                        </label>
+                        <label class="torncat-filter torncat-filter-last">
+                            <span class="torncat-label">Auto-Refresh (30s)</span>
+                            <input class="torncat-checkbox" id="tc-filter-autorefresh" type="checkbox">
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <hr class="page-head-delimiter m-top10 m-bottom10 ">
     </div>
+
     `;
     var widgetLocationsLength = $('.faction-info-wrap.another-faction').length;
     $(widgetHTML).insertBefore($('.faction-info-wrap.another-faction')[widgetLocationsLength - 1]);
@@ -174,6 +183,17 @@ var styles= `
     background: repeating-linear-gradient(90deg,#242424,#242424 2px,#2e2e2e 0,#2e2e2e 4px);
     color: #fff;
 }
+.torncat-filter {
+    display: inline-block;
+    width: 33%;
+}
+.torncat-filter-middle {
+    text-align: center;
+}
+.torncat-filter-last {
+    text-align: right;
+}
+
 .torncat-widgets article {
     padding: 10px;
 }
@@ -190,6 +210,15 @@ var styles= `
 }
 .torncat-widget__header label {
     margin-left: 10px;
+}
+.torncat-icon {
+    background-image: url("data:image/svg+xml,%3Csvg data-v-fde0c5aa='' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300' class='icon'%3E%3C!----%3E%3Cdefs data-v-fde0c5aa=''%3E%3C!----%3E%3C/defs%3E%3C!----%3E%3C!----%3E%3Cdefs data-v-fde0c5aa=''%3E%3C!----%3E%3C/defs%3E%3Cg data-v-fde0c5aa='' id='761e8856-1551-45a8-83d8-eb3e49301c32' fill='black' stroke='none' transform='matrix(2.200000047683716,0,0,2.200000047683716,39.999999999999986,39.99999999999999)'%3E%3Cpath d='M93.844 43.76L52.389 70.388V85.92L100 55.314zM0 55.314L47.611 85.92V70.384L6.174 43.718zM50 14.08L9.724 39.972 50 65.887l40.318-25.888L50 14.08zm0 15.954L29.95 42.929l-5.027-3.228L50 23.576l25.077 16.125-5.026 3.228L50 30.034z'%3E%3C/path%3E%3C/g%3E%3C!----%3E%3C/svg%3E");
+    background-position: center center;
+    background-repeat: no-repeat;
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+    display: inline-block;
+    width: 32px;
 }
 `;
 // eslint-disable-next-line no-undef
