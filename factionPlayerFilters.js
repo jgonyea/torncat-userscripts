@@ -10,11 +10,12 @@
 
 
 var data = data || {};
+var timerRunning = false;
 
 (function() {
     'use strict';
 
-    console.debug('Find Revive Targets (FRT) started');
+    console.debug('Faction Player Filters (FPF) started');
     loadData();
     save();
     // Some pages load user lists via AJAX.  This reloads the event attaching to the new list.
@@ -39,7 +40,8 @@ function loadData(){
         data = {
             checked:{
                 attack: false,
-                revive: false
+                revive: false,
+                autorefresh: false
             }
         };
     }else{
@@ -49,6 +51,7 @@ function loadData(){
 
 // Save localStorage data.
 function save(){
+    console.debug('FPF local data saved');
     localStorage.setItem('torncat.factionFilters', JSON.stringify(data));
 }
 
@@ -82,6 +85,7 @@ function toggleUserRow(toggleType){
 function displayTCWidget(){
     var reviveCheck = '#tc-filter-revive';
     var attackCheck = '#tc-filter-attack';
+    var autorefreshCheck = '#tc-filter-autorefresh';
 
     var widgetHTML = `
     <div class="msg-info-wrap">
@@ -124,6 +128,12 @@ function displayTCWidget(){
         toggleUserRow('revive');
     }
 
+    if (data.checked.autorefresh == true){
+        $(autorefreshCheck).prop('checked', true);
+        startTimer();
+    }
+
+    // Watch for event changes on the revive mode checkbox.
     $(reviveCheck).change(function() {
         toggleUserRow('revive');
         if ($(attackCheck).prop('checked')){
@@ -134,6 +144,8 @@ function displayTCWidget(){
         data.checked.revive = !data.checked.revive;
         save();
     });
+
+    // Watch for event changes on the attack mode checkbox.
     $(attackCheck).change(function() {
         toggleUserRow('attack');
         if ($(reviveCheck).prop('checked')){
@@ -144,10 +156,40 @@ function displayTCWidget(){
         data.checked.attack = !data.checked.attack;
         save();
     });
+
+    // Watch for event changes on the autorefresh checkbox.
+    $(autorefreshCheck).change(function() {
+        data.checked.autorefresh = !data.checked.autorefresh;
+        save();
+        startTimer();
+
+    });
 }
 
-function dynamicClickCheck(selector){
-    $(selector).click();
+function startTimer(){
+    var autorefreshCheck = '#tc-filter-autorefresh';
+    if ($(autorefreshCheck).prop('checked') == true && timerRunning == false){
+        var timerLeft = 30;
+        timerRunning = true;
+        var refreshInterval = setInterval(function(){
+            timerLeft--;
+            if (timerLeft < 1) {
+                clearInterval(refreshInterval);
+                location.reload();
+            }
+            if (timerLeft < 10) {
+                $('.torncat-filter-last span.torncat-label').toggleClass('t-red');
+            }
+            $('.torncat-filter-last span.torncat-label').html('Auto-Refresh (' + timerLeft + ')');
+            if (!timerRunning){
+                clearInterval(refreshInterval);
+            }
+        }, 1000);
+    } else {
+        clearInterval(refreshInterval);
+        timerRunning = false;
+    }
+
 }
 
 // Only returns if the AJAX URL is on the known list.
