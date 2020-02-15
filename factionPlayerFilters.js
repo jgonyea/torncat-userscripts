@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      0.2.3
+// @version      0.2.4
 // @description  This script adds player filters on faction pages.
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/factions.php*
@@ -41,6 +41,7 @@ function loadData(){
             checked:{
                 attack: false,
                 revive: false,
+                online: false,
                 autorefresh: false
             }
         };
@@ -64,6 +65,18 @@ function toggleUserRow(toggleType){
     const $$ = (selector, startNode = D) => [...startNode.querySelectorAll(selector)];
     var greenStatusList = $$('.status .t-green');
     var redStatusList = $$('.status .t-red');
+
+    if (toggleType == 'offline') {
+        var idleList = $$('li #icon62');
+        var offlineList = $$('li #icon2');
+        var awayList = idleList.concat(offlineList);
+        awayList.forEach(el =>{
+            $(el).parent().closest('li').toggleClass('torncat-hide-' + toggleType);
+        });
+        return;
+    }
+
+
     greenStatusList.forEach(el => {
         var line = $(el).closest('li');
         if(toggleType == 'revive'){
@@ -85,6 +98,7 @@ function toggleUserRow(toggleType){
 function displayTCWidget(){
     var reviveCheck = '#tc-filter-revive';
     var attackCheck = '#tc-filter-attack';
+    var offlineCheck = '#tc-filter-offline';
     var autorefreshCheck = '#tc-filter-autorefresh';
 
     var widgetHTML = `
@@ -92,9 +106,8 @@ function displayTCWidget(){
         <div class="info-msg-cont  border-round m-top10">
 		    <div class="info-msg border-round">
                 <a class="torncat-icon" href="http://torncat.servegame.com" title="TornCAT" target=”_blank” rel=”noopener noreferrer”></a>
-                <div class="delimiter">
+                <div class="delimiter torncat-filters">
                     <div class="msg right-round" tabindex="0" role="alert">
-                        <span class="torncat-widget__title "></span>
                         <label class="torncat-filter">
                             <span class="torncat-label ">Revive Mode</span>
                             <input class="torncat-checkbox" id="tc-filter-revive" type="checkbox">
@@ -103,8 +116,12 @@ function displayTCWidget(){
                             <span class="torncat-label">Attack Mode</span>
                             <input class="torncat-checkbox" id="tc-filter-attack" type="checkbox">
                         </label>
+                        <label class="torncat-filter torncat-filter-middle">
+                            <span class="torncat-label">Hide Offline</span>
+                            <input class="torncat-checkbox" id="tc-filter-offline" type="checkbox">
+                        </label>
                         <label class="torncat-filter torncat-filter-last">
-                            <span class="torncat-label">Auto-Refresh (30s)</span>
+                            <span class="torncat-label">Auto-Refresh</span>
                             <input class="torncat-checkbox" id="tc-filter-autorefresh" type="checkbox">
                         </label>
                     </div>
@@ -154,6 +171,13 @@ function displayTCWidget(){
             data.checked.revive = false;
         }
         data.checked.attack = !data.checked.attack;
+        save();
+    });
+
+    // Watch for event changes on the Online only mode checkbox.
+    $(offlineCheck).change(function() {
+        toggleUserRow('offline');
+        data.checked.online = !data.checked.online;
         save();
     });
 
@@ -220,34 +244,24 @@ function hideAjaxUrl(url) {
 
 // Custom styling.
 var styles= `
-.torncat-widgets {
-    margin: 10px 0;
-    background: repeating-linear-gradient(90deg,#242424,#242424 2px,#2e2e2e 0,#2e2e2e 4px);
-    color: #fff;
+.torncat-filters div.msg {
+    display: flex;
+    justify-content: center;
+    background-color: DodgerBlue;
 }
 .torncat-filter {
     display: inline-block;
-    width: 32%;
-}
-.torncat-filter-middle {
+    margin: 0 10px 0 10px;
     text-align: center;
-}
-.torncat-filter-last {
-    text-align: right;
 }
 
-.torncat-widgets article {
-    padding: 10px;
-}
-.torncat-widgets h3 {
-    margin-top: 10px;
-    text-align: center;
-    font-size: 16px;
-}
 .torncat-hide-revive {
     display:none;
 }
 .torncat-hide-attack {
+    display:none;
+}
+.torncat-hide-offline {
     display:none;
 }
 .torncat-widget__header label {
@@ -262,6 +276,7 @@ var styles= `
     display: inline-block;
     width: 32px;
 }
+
 `;
 // eslint-disable-next-line no-undef
 GM_addStyle(styles);
