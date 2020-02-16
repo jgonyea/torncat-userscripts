@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      0.2.6
+// @version      0.2.7
 // @description  This script adds player filters on faction pages.
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/blacklist.php*
@@ -83,6 +83,7 @@ function toggleUserRow(toggleType){
         awayList.forEach(el =>{
             $(el).parent().closest('li').toggleClass('torncat-hide-' + toggleType);
         });
+        updateTCURL();
         return;
     }
 
@@ -114,9 +115,9 @@ function toggleUserRow(toggleType){
             });
         }
     });
+    updateTCURL();
 
 }
-
 
 // Find user list and insert TCWidget above it.
 function displayTCWidget(){
@@ -164,6 +165,7 @@ function displayTCWidget(){
     }
     var widgetLocationsLength = $(widgetLocationsselector).length;
     $(widgetHTML).insertBefore($(widgetLocationsselector)[widgetLocationsLength - 1]);
+    updateTCURL();
 
     // Load cached logic between page refreshes.
     if (data.checked.attack == true){
@@ -263,7 +265,8 @@ function hideAjaxUrl(url) {
         'api.torn.com'
     ];
 
-    // Known valid AJAX URl's.
+    // Known valid AJAX URl's, saved here for my own notes.
+    // eslint-disable-next-line no-unused-vars
     var validURLList = [
         'userlist.php',
         'factions.php'
@@ -275,6 +278,52 @@ function hideAjaxUrl(url) {
         }
     }
     return false;
+}
+
+// Returns list of all unique playerIDs currently onscreen, formatted for TornCAT.
+// param Array players
+function getOnScreenPlayerIDs (players) {
+    var playerIDs = [];
+    var results = {};
+    players.forEach(function(el, key){
+        var regex = /(XID\=)(\d*)/;
+        var found = el.href.match(regex);
+        var playerID = Number(found[0].slice(4));
+        var pushPlayer = true;
+        if (
+            $(el).closest('li').hasClass('torncat-hide-revive') ||
+            $(el).closest('li').hasClass('torncat-hide-attack') ||
+            $(el).closest('li').hasClass('torncat-hide-offline')
+        ){
+            pushPlayer = false;
+        }
+        // Push to new array if not already present.
+        if (playerIDs.indexOf(playerID) == -1 && pushPlayer != false){
+            playerIDs.push(playerID);
+        }
+    });
+
+    results.player_id = playerIDs;
+    return results;
+}
+
+function updateTCURL() {
+    var users = $('.user.name');
+    var tornIDs = getOnScreenPlayerIDs(users.toArray());
+    var apiKey = 'Paste Torn API key here';
+    var tupData = localStorage.getItem('torncat.tornUserPeek');
+
+    if (tupData !== undefined && tupData !== null){
+        tupData = JSON.parse(tupData);
+        if (tupData.apikey !== undefined || tupData.apikey !== null) {
+            apiKey = tupData.apikey;
+        }
+    }
+
+    tornIDs = JSON.stringify(tornIDs);
+    tornIDs = window.encodeURI(tornIDs);
+    // Updates icon's url to contain latest playerlist for TornCAT to use.
+    $('a.torncat-icon').attr('href', 'http://torncat.servegame.com?passedUserListData=' + tornIDs + '&apiKey=' + apiKey);
 }
 
 // Custom styling.

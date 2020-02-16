@@ -1,18 +1,16 @@
 // ==UserScript==
 // @name         Torn User Peek
 // @namespace    torncat
-// @version      0.1.1
+// @version      0.2.1
 // @description  Adds new tooltip with user details on user badges.
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/factions.php*
 // @match        https://www.torn.com/userlist.php*
 // @match        https://www.torn.com/jailview.php*
-// @resource     fa https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css
 // @grant        GM_addStyle
-// @grant        GM_getResourceText
 // ==/UserScript==
 
-var data = {};
+var data = data || {};
 var asked = false;
 
 (function() {
@@ -81,7 +79,7 @@ function hideAjaxUrl(url) {
 
 // Load localStorage data.
 function loadData(){
-    data = localStorage.getItem('torncat.tornPeek');
+    data = localStorage.getItem('torncat.tornUserPeek');
     if(data === undefined || data === null){
         // Default settings
         data = {
@@ -113,7 +111,8 @@ function saveOwnData(){
 
 // Save localStorage data.
 function save(){
-    localStorage.setItem('torncat.tornPeek', JSON.stringify(data));
+    console.debug('TUP local data saved');
+    localStorage.setItem('torncat.tornUserPeek', JSON.stringify(data));
 }
 
 // Adds html for torn API key prompt.
@@ -121,30 +120,17 @@ function getApiKey(forceAsk){
     if(asked && forceAsk != true) return; asked = true;
 
 
-    var button = '<button id="JApiKeyBtn" style="';
-    button += 'background-color: #282828;';
-    button += 'border: none;';
-    button += 'border-radius: 0 8px 8px 0;';
-    button += 'color: white;';
-    button += 'padding: 5px 5px 5px 6px;';
-    button += 'text-align: center;';
-    button += 'text-decoration: none;';
-    button += 'display: inline-block;';
-    button += 'font-size: 16px;';
-    button += 'margin: 4px 0px;';
-    button += 'cursor: pointer;';
-    button += '"><i class="fa fa-floppy-o" aria-hidden="true"></i></button>';
-
+    var button = '<button id="JApiKeyBtn" class ="torncat-icon-button"></button>';
     var input = '<input type="text" id="JApiKeyInput" style="';
     input += 'border-radius: 8px 0 0 8px;';
     input += 'margin: 4px 0px;';
     input += 'padding: 5px;';
-    input += 'font-size: 16px;';
-    input += '" placeholder="ApiKey"></input>';
+    input += 'font-size: 16px;height: 20px';
+    input += '" placeholder="  API Key"></input>';
 
     var block = '<div class="profile-wrapper medals-wrapper m-top10">';
-    block += '<div class="menu-header">Torn User Peek Settings</div>';
-    block += '<div class="profile-container"><div class="profile-container-description">';
+    block += '<div class="menu-header">Torncat - Torn User Peek Settings</div>';
+    block += '<div class="profile-container"><div class="profile-container-description" style="padding: 10px">';
     block += 'In order to use this script you need to enter your Torn Api Key, which you can '+
         'get on your <a href="http://www.torn.com/preferences.php">preferences page</a> and under the \'API Key\' tab.<br />';
     block += input;
@@ -196,7 +182,7 @@ function replaceTooltip(response, player) {
             replacementText += '<li class="tup-button"><a href="https://www.torn.com/profiles.php?XID=' + response.player_id + '">&nbsp;Revive&nbsp;</a></li>';
         } else if (response.status.state == 'Jail') {
             replacementText += '<li class="tup-button"><a href="https://www.torn.com/profiles.php?XID=' + response.player_id + '">&nbsp;Bust/ Buy&nbsp;</a></li>';
-        } 
+        }
         replacementText += '<li><strong>Life:</strong> ' + response.life.current + '/' + response.life.maximum + '</li>';
         replacementText += '<li><strong>Level:</strong> ' + response.level + '</li>';
         replacementText += '<li><strong>Age:</strong> ' + response.age + '</li>';
@@ -277,16 +263,18 @@ var styles=`
     color: #555;
 }
 
-.tup-button {
-
+.torncat-icon-button {
+    background-image: url("data:image/svg+xml,%3Csvg data-v-fde0c5aa='' xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 300' class='icon'%3E%3C!----%3E%3Cdefs data-v-fde0c5aa=''%3E%3C!----%3E%3C/defs%3E%3C!----%3E%3C!----%3E%3Cdefs data-v-fde0c5aa=''%3E%3C!----%3E%3C/defs%3E%3Cg data-v-fde0c5aa='' id='761e8856-1551-45a8-83d8-eb3e49301c32' fill='black' stroke='none' transform='matrix(2.200000047683716,0,0,2.200000047683716,39.999999999999986,39.99999999999999)'%3E%3Cpath d='M93.844 43.76L52.389 70.388V85.92L100 55.314zM0 55.314L47.611 85.92V70.384L6.174 43.718zM50 14.08L9.724 39.972 50 65.887l40.318-25.888L50 14.08zm0 15.954L29.95 42.929l-5.027-3.228L50 23.576l25.077 16.125-5.026 3.228L50 30.034z'%3E%3C/path%3E%3C/g%3E%3C!----%3E%3C/svg%3E");
+    background-position: center center;
+    background-repeat: no-repeat;
+    border-bottom-right-radius: 5px;
+    border-top-right-radius: 5px;
+    height: 30px;
+    width: 40px;
+    vertical-align: super;
 }
-
-
 `;
 
 
 // eslint-disable-next-line no-undef
 GM_addStyle(styles);
-// eslint-disable-next-line no-undef
-GM_addStyle(GM_getResourceText('fa'));
-
