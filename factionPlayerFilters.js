@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      0.2.7
+// @version      0.2.8
 // @description  This script adds player filters on faction pages.
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/blacklist.php*
@@ -127,11 +127,11 @@ function displayTCWidget(){
     var autorefreshCheck = '#tc-filter-autorefresh';
 
     var widgetHTML = `
-    <div class="msg-info-wrap">
+    <div class="torncat-player-filter-bar">
         <div class="info-msg-cont  border-round m-top10">
 		    <div class="info-msg border-round">
                 <a class="torncat-icon" href="http://torncat.servegame.com" title="TornCAT" target=”_blank” rel=”noopener noreferrer”></a>
-                <div class="delimiter torncat-filters">
+                <div class="torncat-filters">
                     <div class="msg right-round" tabindex="0" role="alert">
                         <label class="torncat-filter">
                             <span class="torncat-label ">Revive Mode</span>
@@ -158,13 +158,16 @@ function displayTCWidget(){
 
     `;
     var widgetLocationsselector = '';
-    if (window.location.href.match('blacklist.php') || window.location.href.match('friendlist.php')){
-        widgetLocationsselector = '.users-list-title';
-    } else {
-        widgetLocationsselector = '.faction-info-wrap.another-faction';
+    // Only insert if there isn't already a filter bar on the page.
+    if ($('.torncat-player-filter-bar').length != 1){
+        if (window.location.href.match('blacklist.php') || window.location.href.match('friendlist.php')){
+            widgetLocationsselector = '.users-list-title';
+        } else {
+            widgetLocationsselector = '.faction-info-wrap.another-faction';
+        }
+        var widgetLocationsLength = $(widgetLocationsselector).length;
+        $(widgetHTML).insertBefore($(widgetLocationsselector)[widgetLocationsLength - 1]);
     }
-    var widgetLocationsLength = $(widgetLocationsselector).length;
-    $(widgetHTML).insertBefore($(widgetLocationsselector)[widgetLocationsLength - 1]);
     updateTCURL();
 
     // Load cached logic between page refreshes.
