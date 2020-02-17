@@ -1,12 +1,15 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      0.2.8
+// @version      0.2.9
 // @description  This script adds player filters on faction pages.
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/blacklist.php*
 // @match        https://www.torn.com/factions.php*
 // @match        https://www.torn.com/friendlist.php*
+// @match        https://www.torn.com/hospitalview.php*
+// @match        https://www.torn.com/jailview.php*
+// @match        https://www.torn.com/index.php?page=people*
 // @grant        GM_addStyle
 // ==/UserScript==
 
@@ -14,26 +17,29 @@
 var data = data || {};
 var timerRunning = false;
 
+// Following pages don't load the user list via AJAX.
+var manualList = [
+    'blacklist.php',
+    'friendlist.php',
+    'page=people',
+    'step=profile'
+];
+
 (function() {
     'use strict';
 
     console.debug('Faction Player Filters (FPF) started');
     loadData();
     save();
-    // Some pages load user lists via AJAX.  This reloads the event attaching to the new list.
+
+    // Automatically display widget for pages that load user lists via AJAX.
     $( document ).ajaxComplete(function( event, xhr, settings ) {
         if (hideAjaxUrl(settings.url) == false) {
             displayTCWidget();
         }
     });
 
-    // Some pages don't load the user list via AJAX.  Need to call the event attaching manually.
-    var manualList = [
-        'blacklist.php',
-        'friendlist.php',
-        'step=profile'
-    ];
-
+    // Manually display the filter widget if current url matches an item in the manualList array.
     manualList.forEach(el =>{
         if (window.location.href.match(el)){
             displayTCWidget();
@@ -125,6 +131,7 @@ function displayTCWidget(){
     var attackCheck = '#tc-filter-attack';
     var offlineCheck = '#tc-filter-offline';
     var autorefreshCheck = '#tc-filter-autorefresh';
+    var widgetLocationsselector = '';
 
     var widgetHTML = `
     <div class="torncat-player-filter-bar">
@@ -157,19 +164,63 @@ function displayTCWidget(){
     </div>
 
     `;
-    var widgetLocationsselector = '';
+
     // Only insert if there isn't already a filter bar on the page.
     if ($('.torncat-player-filter-bar').length != 1){
-        if (window.location.href.match('blacklist.php') || window.location.href.match('friendlist.php')){
-            widgetLocationsselector = '.users-list-title';
-        } else {
+
+        if (window.location.href.match('factions.php')){
             widgetLocationsselector = '.faction-info-wrap.another-faction';
+        } else {
+            widgetLocationsselector = '.users-list-title';
         }
+
         var widgetLocationsLength = $(widgetLocationsselector).length;
         $(widgetHTML).insertBefore($(widgetLocationsselector)[widgetLocationsLength - 1]);
-    }
-    updateTCURL();
+        // Watch for event changes on the revive mode checkbox.
+        $(reviveCheck).change(function() {
+            toggleUserRow('revive');
+            if ($(attackCheck).prop('checked')){
+                $(attackCheck).prop('checked', false);
+                toggleUserRow('attack');
+                data.checked.attack = false;
+            }
+            data.checked.revive = !data.checked.revive;
+            save();
+        });
 
+        // Watch for event changes on the attack mode checkbox.
+        $(attackCheck).change(function() {
+            toggleUserRow('attack');
+            if ($(reviveCheck).prop('checked')){
+                $(reviveCheck).prop('checked', false);
+                toggleUserRow('revive');
+                data.checked.revive = false;
+            }
+            data.checked.attack = !data.checked.attack;
+            save();
+        });
+
+        // Watch for event changes on the Hide Offline mode checkbox.
+        $(offlineCheck).change(function() {
+            toggleUserRow('offline');
+            data.checked.offline = !data.checked.offline;
+            save();
+        });
+
+        // Watch for event changes on the autorefresh checkbox.
+        $(autorefreshCheck).change(function() {
+            data.checked.autorefresh = !data.checked.autorefresh;
+            save();
+            startTimer();
+
+        });
+
+        if (data.checked.autorefresh == true){
+            $(autorefreshCheck).prop('checked', true);
+            startTimer();
+        }
+
+    }
     // Load cached logic between page refreshes.
     if (data.checked.attack == true){
         $(attackCheck).prop('checked', true);
@@ -184,50 +235,8 @@ function displayTCWidget(){
         $(offlineCheck).prop('checked', true);
         toggleUserRow('offline');
     }
+    updateTCURL();
 
-    if (data.checked.autorefresh == true){
-        $(autorefreshCheck).prop('checked', true);
-        startTimer();
-    }
-
-    // Watch for event changes on the revive mode checkbox.
-    $(reviveCheck).change(function() {
-        toggleUserRow('revive');
-        if ($(attackCheck).prop('checked')){
-            $(attackCheck).prop('checked', false);
-            toggleUserRow('attack');
-            data.checked.attack = false;
-        }
-        data.checked.revive = !data.checked.revive;
-        save();
-    });
-
-    // Watch for event changes on the attack mode checkbox.
-    $(attackCheck).change(function() {
-        toggleUserRow('attack');
-        if ($(reviveCheck).prop('checked')){
-            $(reviveCheck).prop('checked', false);
-            toggleUserRow('revive');
-            data.checked.revive = false;
-        }
-        data.checked.attack = !data.checked.attack;
-        save();
-    });
-
-    // Watch for event changes on the Hide Offline mode checkbox.
-    $(offlineCheck).change(function() {
-        toggleUserRow('offline');
-        data.checked.offline = !data.checked.offline;
-        save();
-    });
-
-    // Watch for event changes on the autorefresh checkbox.
-    $(autorefreshCheck).change(function() {
-        data.checked.autorefresh = !data.checked.autorefresh;
-        save();
-        startTimer();
-
-    });
 }
 
 function startTimer(){
@@ -288,8 +297,8 @@ function hideAjaxUrl(url) {
 function getOnScreenPlayerIDs (players) {
     var playerIDs = [];
     var results = {};
-    players.forEach(function(el, key){
-        var regex = /(XID\=)(\d*)/;
+    players.forEach(function(el){
+        var regex = /(XID=)(\d*)/;
         var found = el.href.match(regex);
         var playerID = Number(found[0].slice(4));
         var pushPlayer = true;
