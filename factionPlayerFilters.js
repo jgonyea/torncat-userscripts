@@ -2,7 +2,7 @@
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
 // @version      0.2.9
-// @description  This script adds player filters on faction pages.
+// @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/blacklist.php*
 // @match        https://www.torn.com/factions.php*
@@ -13,7 +13,7 @@
 // @grant        GM_addStyle
 // ==/UserScript==
 
-
+// README: https://github.com/jgonyea/torn-userscripts/blob/master/README.md
 var data = data || {};
 var timerRunning = false;
 
@@ -77,14 +77,12 @@ function save(){
  * @param {string} toggleType
  */
 function toggleUserRow(toggleType){
-    const D = document;
-    const $$ = (selector, startNode = D) => [...startNode.querySelectorAll(selector)];
-    var greenStatusList = $$('.status .t-green');
-    var redStatusList = $$('.status .t-red');
+    var greenStatusList = $('.status .t-green').toArray();
+    var redStatusList = $('.status .t-red').toArray();
 
     if (toggleType == 'offline') {
-        var idleList = $$('li #icon62');
-        var offlineList = $$('li #icon2');
+        var idleList = $('li #icon62').toArray();
+        var offlineList = $('li #icon2').toArray();
         var awayList = idleList.concat(offlineList);
         awayList.forEach(el =>{
             $(el).parent().closest('li').toggleClass('torncat-hide-' + toggleType);
@@ -137,7 +135,7 @@ function displayTCWidget(){
     <div class="torncat-player-filter-bar">
         <div class="info-msg-cont  border-round m-top10">
 		    <div class="info-msg border-round">
-                <a class="torncat-icon" href="http://torncat.servegame.com" title="TornCAT" target=”_blank” rel=”noopener noreferrer”></a>
+                <a class="torncat-icon" href="http://torncat.servegame.com" title="Send current list to TornCAT" target=”_blank” rel=”noopener noreferrer”></a>
                 <div class="torncat-filters">
                     <div class="msg right-round" tabindex="0" role="alert">
                         <label class="torncat-filter">
@@ -322,7 +320,7 @@ function getOnScreenPlayerIDs (players) {
 function updateTCURL() {
     var users = $('.user.name');
     var tornIDs = getOnScreenPlayerIDs(users.toArray());
-    var apiKey = 'Paste Torn API key here';
+    var apiKey = 'Paste API key here';
     var tupData = localStorage.getItem('torncat.tornUserPeek');
 
     if (tupData !== undefined && tupData !== null){
