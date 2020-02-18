@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      0.2.9
+// @version      0.2.10
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/blacklist.php*
@@ -15,7 +15,6 @@
 
 // README: https://github.com/jgonyea/torn-userscripts/blob/master/README.md
 var data = data || {};
-var timerRunning = false;
 
 // Following pages don't load the user list via AJAX.
 var manualList = [
@@ -58,7 +57,6 @@ function loadData(){
                 attack: false,
                 revive: false,
                 offline: false,
-                autorefresh: false
             }
         };
     }else{
@@ -128,7 +126,6 @@ function displayTCWidget(){
     var reviveCheck = '#tc-filter-revive';
     var attackCheck = '#tc-filter-attack';
     var offlineCheck = '#tc-filter-offline';
-    var autorefreshCheck = '#tc-filter-autorefresh';
     var widgetLocationsselector = '';
 
     var widgetHTML = `
@@ -142,17 +139,13 @@ function displayTCWidget(){
                             <span class="torncat-label ">Revive Mode</span>
                             <input class="torncat-checkbox" id="tc-filter-revive" type="checkbox">
                         </label>
-                        <label class="torncat-filter torncat-filter-middle">
+                        <label class="torncat-filter">
                             <span class="torncat-label">Attack Mode</span>
                             <input class="torncat-checkbox" id="tc-filter-attack" type="checkbox">
                         </label>
-                        <label class="torncat-filter torncat-filter-middle">
+                        <label class="torncat-filter">
                             <span class="torncat-label">Hide Offline</span>
                             <input class="torncat-checkbox" id="tc-filter-offline" type="checkbox">
-                        </label>
-                        <label class="torncat-filter torncat-filter-last">
-                            <span class="torncat-label">Auto-Refresh</span>
-                            <input class="torncat-checkbox" id="tc-filter-autorefresh" type="checkbox">
                         </label>
                     </div>
                 </div>
@@ -205,19 +198,6 @@ function displayTCWidget(){
             save();
         });
 
-        // Watch for event changes on the autorefresh checkbox.
-        $(autorefreshCheck).change(function() {
-            data.checked.autorefresh = !data.checked.autorefresh;
-            save();
-            startTimer();
-
-        });
-
-        if (data.checked.autorefresh == true){
-            $(autorefreshCheck).prop('checked', true);
-            startTimer();
-        }
-
     }
     // Load cached logic between page refreshes.
     if (data.checked.attack == true){
@@ -236,33 +216,6 @@ function displayTCWidget(){
     updateTCURL();
 
 }
-
-function startTimer(){
-    var autorefreshCheck = '#tc-filter-autorefresh';
-    if ($(autorefreshCheck).prop('checked') == true && timerRunning == false){
-        var timerLeft = 30;
-        timerRunning = true;
-        var refreshInterval = setInterval(function(){
-            timerLeft--;
-            if (timerLeft < 1) {
-                clearInterval(refreshInterval);
-                location.reload();
-            }
-            if (timerLeft < 10) {
-                $('.torncat-filter-last span.torncat-label').toggleClass('t-red');
-            }
-            $('.torncat-filter-last span.torncat-label').html('Auto-Refresh (' + timerLeft + ')');
-            if (!timerRunning){
-                clearInterval(refreshInterval);
-            }
-        }, 1000);
-    } else {
-        clearInterval(refreshInterval);
-        timerRunning = false;
-    }
-
-}
-
 // Only returns if the AJAX URL is on the known list.
 function hideAjaxUrl(url) {
     // Known AJAX URL's to ignore.
@@ -320,20 +273,11 @@ function getOnScreenPlayerIDs (players) {
 function updateTCURL() {
     var users = $('.user.name');
     var tornIDs = getOnScreenPlayerIDs(users.toArray());
-    var apiKey = 'Paste API key here';
-    var tupData = localStorage.getItem('torncat.tornUserPeek');
-
-    if (tupData !== undefined && tupData !== null){
-        tupData = JSON.parse(tupData);
-        if (tupData.apikey !== undefined || tupData.apikey !== null) {
-            apiKey = tupData.apikey;
-        }
-    }
 
     tornIDs = JSON.stringify(tornIDs);
     tornIDs = window.encodeURI(tornIDs);
     // Updates icon's url to contain latest playerlist for TornCAT to use.
-    $('a.torncat-icon').attr('href', 'http://torncat.servegame.com?passedUserListData=' + tornIDs + '&apiKey=' + apiKey);
+    $('a.torncat-icon').attr('href', 'http://torncat.servegame.com?playerList=' + tornIDs);
 }
 
 // Custom styling.
