@@ -79,8 +79,8 @@ function toggleUserRow(toggleType){
     var redStatusList = $('.status .t-red').toArray();
 
     if (toggleType == 'offline') {
-        var idleList = $('li #icon62').toArray();
-        var offlineList = $('li #icon2').toArray();
+        var idleList = $('li [id^=icon62_').toArray();
+        var offlineList = $('li [id^=icon2_]').toArray();
         var awayList = idleList.concat(offlineList);
         awayList.forEach(el =>{
             $(el).parent().closest('li').toggleClass('torncat-hide-' + toggleType);
