@@ -221,11 +221,12 @@ function hideAjaxUrl(url) {
     // Known AJAX URL's to ignore.
 
     var hideURLList = [
+        'api.torn.com',
+        'competition.php',
+        'missionChecker.php',
         'onlinestatus.php',
         'sidebarAjaxAction.php',
-        'tornMobileApp.php',
-        'missionChecker.php',
-        'api.torn.com'
+        'tornMobileApp.php'
     ];
 
     // Known valid AJAX URl's, saved here for my own notes.
