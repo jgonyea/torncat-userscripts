@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      0.2.12
+// @version      0.2.13
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/blacklist.php*
@@ -222,6 +222,7 @@ function hideAjaxUrl(url) {
 
     var hideURLList = [
         'api.torn.com',
+        'autocompleteHeaderAjaxAction.php',
         'competition.php',
         'missionChecker.php',
         'onlinestatus.php',
