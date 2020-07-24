@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      0.2.16
+// @version      0.2.17
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/blacklist.php*
@@ -290,6 +290,11 @@ var styles= `
     display: flex;
     justify-content: center;
 }
+
+.torncat-filters {
+    width: 100%
+}
+
 .torncat-filter {
     display: inline-block;
     margin: 0 10px 0 10px;
