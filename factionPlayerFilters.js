@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         TornCAT Faction Player Filters
+// @name         TornCAT Faction Player Filters (DEV)
 // @namespace    torncat
-// @version      0.3.3
+// @version      0.3.4
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/factions.php*
@@ -155,7 +155,7 @@ function displayTCWidget(){
     if ($('.torncat-player-filter-bar').length != 1){
 
         if (window.location.href.match('factions.php')){
-            widgetLocationsselector = '.faction-info-wrap.another-faction';
+            widgetLocationsselector = '#faction-info-members';
         } else {
             widgetLocationsselector = '.users-list-title';
         }
