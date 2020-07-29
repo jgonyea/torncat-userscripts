@@ -162,6 +162,10 @@ function displayTCWidget(){
         $(widgetHTML).insertBefore($(widgetLocationsselector)[widgetLocationsLength - 1]);
         // Watch for event changes on the revive mode checkbox.
         $(reviveCheck).change(function() {
+            // Stop auto-refresh.
+            $(refreshCheck).prop('checked', false);
+            queue.clear();
+
             toggleUserRow('revive');
             if ($(attackCheck).prop('checked')){
                 $(attackCheck).prop('checked', false);
@@ -174,6 +178,9 @@ function displayTCWidget(){
 
         // Watch for event changes on the attack mode checkbox.
         $(attackCheck).change(function() {
+            // Stop auto-refresh.
+            $(refreshCheck).prop('checked', false);
+            queue.clear();
             toggleUserRow('attack');
             if ($(reviveCheck).prop('checked')){
                 $(reviveCheck).prop('checked', false);
@@ -186,6 +193,9 @@ function displayTCWidget(){
 
         // Watch for event changes on the Hide Offline mode checkbox.
         $(offlineCheck).change(function() {
+            // Stop auto-refresh.
+            $(refreshCheck).prop('checked', false);
+            queue.clear();
             toggleUserRow('offline');
             data.checked.offline = !data.checked.offline;
             save();
@@ -193,10 +203,30 @@ function displayTCWidget(){
 
         $(refreshCheck).change(function() {
             if ($(refreshCheck).prop('checked')) {
+                // Undo other checks
+                if ($(reviveCheck).prop('checked')){
+                    $(reviveCheck).prop('checked', false);
+                    toggleUserRow('revive');
+                    data.checked.revive = false;
+                }
+                if ($(attackCheck).prop('checked')){
+                    $(attackCheck).prop('checked', false);
+                    toggleUserRow('attack');
+                    data.checked.attack = false;
+                }
+                if ($(offlineCheck).prop('checked')){
+                    $(offlineCheck).prop('checked', false);
+                    toggleUserRow('offline');
+                    data.checked.offline = false;
+                }
+                save();
+
                 console.log('FPF: Starting Autorefresh');
                 refreshInit();
             } else {
+                console.log('FPF: Stopped processing queue. Queue cleared');
                 queue.clear();
+                console.debug('API Cache Dump:', apiCache);
             }
 
 
@@ -383,20 +413,20 @@ function processAutoRefreshQueue(queue){
             }
 
             // Call player cache
-            let playerData = await cacheCall(playerID);
-            if ('error' in playerData === true){
-                console.error(playerData.error.error);
+            let playerData = await cacheCall(playerID).catch((error) => {
+                console.error(error);
                 queue.clear();
                 apiKeyPrompt(true);
                 return;
-            }
+            });
 
             // Find player on page
             let selector = 'a[href$="' + playerID + '"]';
 
             // Update content
             $('a[href$="' + playerID + '"]').parent().closest('li').css('background','rgba(76, 200, 76, 0.2)');
-            $(selector).parent().closest('li').find('div.status').html(playerData.status.state);
+            let newHtml = '<span class="d-hide bold">Status:</span><span class="t-' + playerData.status.color + '">' + playerData.status.state + '</span>';
+            $(selector).parent().closest('li').find('div.status').html(newHtml);
             $(selector).parent().closest('li').find('div.status').css('color', playerData.status.color);
             updatePlayerIcon(selector, playerData.last_action.status);
 
@@ -445,7 +475,7 @@ function cacheCall(player_id){
                 if ((!('timestamp' in player) === true) || player.timestamp < (nowEpoch - 30)) {
                     callFlag = true;
                 } else {
-                    console.log('Cache hit for player ' + player_id);
+                    console.log('FPF: Cache hit for player ' + player_id);
                     playerData = player;
                 }
             }
@@ -475,8 +505,7 @@ function cacheCall(player_id){
 // Calls torn API.
 function apiCall(url, cb){
     queue.queries = queue.queries + 1;
-    console.log('API Queries: ' + queue.queries);
-    console.log('FPF: making request \''+url+'\'');
+    console.log('FPF: API Queries: ' + queue.queries);
     $.ajax({
         url: url,
         type: 'GET',
