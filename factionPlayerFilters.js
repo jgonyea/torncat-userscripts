@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      0.3.2
+// @version      0.3.3
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/factions.php*
@@ -97,16 +97,17 @@ function apiKeyPrompt(forceCheck){
     block += '</div></div></div>';
     setTimeout(()=>{
         if ($('.api-key-prompt').length != 1){
-            $(block).insertAfter('.tutorial-cont');
+            $(block).insertAfter('.torncat-player-filter-bar');
 
             $('#JApiKeyBtn').click(function(){
-                var key = $('#JApiKeyInput').val();
-                data.apikey = key;
+                data.apiKey = $('#JApiKeyInput').val();
                 save();
-                location.reload();
+                $('.api-key-prompt').remove();
+                console.log('FPF: Starting Autorefresh');
+                refreshInit();
             });
         }
-    }, 2000);
+    }, 1500);
 
 }
 
@@ -141,6 +142,7 @@ function displayTCWidget(){
                                 <span class="torncat-label">Auto Refresh (API)</span>
                                 <input class="torncat-checkbox" id="tc-refresh" type="checkbox">
                             </label>
+                            <button class="torn-btn" onclick="localStorage.removeItem('torncat.factionFilters');location.reload();">Clear Key</button>
                         </div>
                     </div>
                 </div>
@@ -329,11 +331,12 @@ function updateTCURL() {
 function toggleUserRow(toggleType){
     var greenStatusList = $('.status .t-green').toArray();
     var redStatusList = $('.status .t-red').toArray();
+    var blueStatusList = $('.status .t-blue').toArray();
 
     if (toggleType == 'offline') {
         var idleList = $('li [id^=icon62_').toArray();
         var offlineList = $('li [id^=icon2_]').toArray();
-        var awayList = idleList.concat(offlineList);
+        var awayList = idleList.concat(offlineList).concat(blueStatusList);
         awayList.forEach(el =>{
             $(el).parent().closest('li').toggleClass('torncat-hide-' + toggleType);
         });
@@ -343,7 +346,7 @@ function toggleUserRow(toggleType){
 
 
     greenStatusList.forEach(el => {
-        var line = $(el).closest('li');
+        var line = $(el).parent().closest('li');
         if(toggleType == 'revive'){
             $(line).toggleClass('torncat-hide-' + toggleType);
         }
@@ -358,7 +361,7 @@ function toggleUserRow(toggleType){
         ];
 
         if (toggleType == 'attack') {
-            var line = $(el).closest('li');
+            var line = $(el).parent().closest('li');
             $(line).toggleClass('torncat-hide-'+toggleType);
         } else {
             matches.forEach(match => {
@@ -376,7 +379,9 @@ function toggleUserRow(toggleType){
 function refreshInit(){
     // Find players
     if (!('apiKey' in data) || data.apiKey == ''){
-        apiKeyPrompt();
+        console.debug('refresh', data);
+        apiKeyPrompt(true);
+        return;
     }
 
     let players = getOnScreenPlayerIDs();
@@ -385,9 +390,18 @@ function refreshInit(){
         queue.enqueue(id);
     });
 
+    // Preload cache if on a faction page.
+    let url = window.location.href;
+    if (url.startsWith('https://www.torn.com/factions.php')){
+        let searchParams = new URLSearchParams(window.location.search);
+        if (searchParams.has('ID')){
+            processFactionPage(searchParams.get('ID'));
+        }
+    }
+
     // Process queue
     processAutoRefreshQueue(queue);
-    // Kill queue if filters change
+
 }
 
 function processAutoRefreshQueue(queue){
@@ -402,15 +416,6 @@ function processAutoRefreshQueue(queue){
     // Process next queue item.
     setTimeout( async () => {
         if (queue.queries < maxQueries){
-            let url = window.location.href;
-
-            // Preload cache if on a faction page.
-            if (url.startsWith('https://www.torn.com/factions.php')){
-                let searchParams = new URLSearchParams(window.location.search);
-                if (searchParams.has('ID')){
-                    await processFactionPage(searchParams.get('ID'));
-                }
-            }
 
             // Call player cache
             let playerData = await cacheCall(playerID).catch((error) => {
@@ -440,13 +445,18 @@ function processAutoRefreshQueue(queue){
                     processAutoRefreshQueue(queue);
                 }
             }, queryDelay);
+        } else {
+            console.log('Local API limit hit. Waiting 60s');
+            setTimeout(()=>{
+                processAutoRefreshQueue(queue);
+            }, 60000);
         }
     },queryDelay);
 }
 
 function processFactionPage(faction_id){
 
-    let url = 'https://api.torn.com/faction/' + faction_id + '?selections=basic,timestamp&key=' + data.apikey;
+    let url = 'https://api.torn.com/faction/' + faction_id + '?selections=basic,timestamp&key=' + data.apiKey;
     apiCall(url, function (d) {
         if ('error' in d){
             console.error(d.error.error);
@@ -483,7 +493,7 @@ function cacheCall(player_id){
 
             if (callFlag) {
 
-                let url = 'https://api.torn.com/user/' + player_id + '?selections=basic,profile,timestamp&key=' + data.apikey;
+                let url = 'https://api.torn.com/user/' + player_id + '?selections=basic,profile,timestamp&key=' + data.apiKey;
                 await apiCall(url, function (d) {
                     if ('error' in d){
                         reject(d.error.error);
@@ -519,13 +529,13 @@ function apiCall(url, cb){
 function updatePlayerIcon(selector, state){
     switch (state) {
     case 'Offline':
-        $(selector).parent().closest('li').find('ul#iconTray').first().find('li').first().attr('id','icon2');
+        $(selector).parent().closest('li').find('ul#iconTray').first().find('li').first().attr('id','icon2_');
         break;
     case 'Online':
-        $(selector).parent().closest('li').find('ul#iconTray').first().find('li').first().attr('id','icon1');
+        $(selector).parent().closest('li').find('ul#iconTray').first().find('li').first().attr('id','icon1_');
         break;
     default:
-        $(selector).parent().closest('li').find('ul#iconTray').first().find('li').first().attr('id','icon62');
+        $(selector).parent().closest('li').find('ul#iconTray').first().find('li').first().attr('id','icon62_');
     }
     return;
 }
