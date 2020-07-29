@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters (DEV)
 // @namespace    torncat
-// @version      0.3.5
+// @version      0.3.7
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/factions.php*
@@ -16,7 +16,7 @@
 var data = data || {};
 var devel = false;
 var maxQueries = 60;
-var queryDelay = 100;
+var queryDelay = 200;
 var apiCache = {};
 
 
@@ -164,10 +164,6 @@ function displayTCWidget(){
         $(widgetHTML).insertBefore($(widgetLocationsselector)[widgetLocationsLength - 1]);
         // Watch for event changes on the revive mode checkbox.
         $(reviveCheck).change(function() {
-            // Stop auto-refresh.
-            $(refreshCheck).prop('checked', false);
-            queue.clear();
-
             toggleUserRow('revive');
             if ($(attackCheck).prop('checked')){
                 $(attackCheck).prop('checked', false);
@@ -180,9 +176,6 @@ function displayTCWidget(){
 
         // Watch for event changes on the attack mode checkbox.
         $(attackCheck).change(function() {
-            // Stop auto-refresh.
-            $(refreshCheck).prop('checked', false);
-            queue.clear();
             toggleUserRow('attack');
             if ($(reviveCheck).prop('checked')){
                 $(reviveCheck).prop('checked', false);
@@ -196,8 +189,6 @@ function displayTCWidget(){
         // Watch for event changes on the Hide Offline mode checkbox.
         $(offlineCheck).change(function() {
             // Stop auto-refresh.
-            $(refreshCheck).prop('checked', false);
-            queue.clear();
             toggleUserRow('offline');
             data.checked.offline = !data.checked.offline;
             save();
@@ -205,30 +196,11 @@ function displayTCWidget(){
 
         $(refreshCheck).change(function() {
             if ($(refreshCheck).prop('checked')) {
-                // Undo other checks
-                if ($(reviveCheck).prop('checked')){
-                    $(reviveCheck).prop('checked', false);
-                    toggleUserRow('revive');
-                    data.checked.revive = false;
-                }
-                if ($(attackCheck).prop('checked')){
-                    $(attackCheck).prop('checked', false);
-                    toggleUserRow('attack');
-                    data.checked.attack = false;
-                }
-                if ($(offlineCheck).prop('checked')){
-                    $(offlineCheck).prop('checked', false);
-                    toggleUserRow('offline');
-                    data.checked.offline = false;
-                }
-                save();
-
                 console.log('FPF: Starting Autorefresh');
                 refreshInit();
             } else {
                 console.log('FPF: Stopped processing queue. Queue cleared');
                 queue.clear();
-                console.debug('API Cache Dump:', apiCache);
             }
 
 
@@ -283,7 +255,7 @@ function hideAjaxUrl(url) {
 }
 
 // Returns list of all unique playerIDs currently onscreen, formatted for TornCAT.
-function getOnScreenPlayerIDs () {
+function getOnScreenPlayerIDs (offline = false) {
     var users = $('.user.name');
     var players = users.toArray();
     var playerIDs = [];
@@ -294,11 +266,11 @@ function getOnScreenPlayerIDs () {
         var found = el.href.match(regex);
         var playerID = Number(found[0].slice(4));
         var pushPlayer = true;
-        if (
+        if ((
             $(el).closest('li.table-row').hasClass('torncat-hide-revive') ||
             $(el).closest('li.table-row').hasClass('torncat-hide-attack') ||
             $(el).closest('li.table-row').hasClass('torncat-hide-offline')
-        ){
+        ) && !(offline)){
             pushPlayer = false;
         }
         // Push to new array if not already present.
@@ -339,21 +311,26 @@ function toggleUserRow(toggleType){
 
         var awayList = idleList.concat(offlineList);
         awayList.forEach(el =>{
-            $(el).parent().closest('li.table-row').toggleClass('torncat-hide-' + toggleType);
+            $(el).parent().closest('li').toggleClass('torncat-hide-' + toggleType);
         });
         updateTCURL();
         return;
     }
 
+    blueStatusList.forEach(el => {
+        var line = $(el).parent().closest('li');
+        $(line).toggleClass('torncat-hide-' + toggleType);
+    });
+
+
     greenStatusList.forEach(el => {
-        var line = $(el).parent().closest('li.table-row');
+        var line = $(el).parent().closest('li');
         if(toggleType == 'revive'){
             $(line).toggleClass('torncat-hide-' + toggleType);
         }
     });
 
     redStatusList.forEach(el => {
-
         var matches = [
             'Traveling',
             'Fallen',
@@ -361,12 +338,12 @@ function toggleUserRow(toggleType){
         ];
 
         if (toggleType == 'attack') {
-            var line = $(el).parent().closest('li.table-row');
-            $(line).toggleClass('torncat-hide-'+toggleType);
+            var line = $(el).parent().closest('li');
+            $(line).toggleClass('torncat-hide-' + toggleType);
         } else {
             matches.forEach(match => {
                 if ($(el).html().endsWith(match) || $(el).html().endsWith(match + ' ')) {
-                    var line = $(el).closest('li.table-row');
+                    var line = $(el).closest('li');
                     $(line).toggleClass('torncat-hide-'+toggleType);
                 }
             });
@@ -383,7 +360,7 @@ function refreshInit(){
         return;
     }
 
-    let players = getOnScreenPlayerIDs();
+    let players = getOnScreenPlayerIDs(true);
     // Assign queue
     players.player_id.forEach((id) => {
         queue.enqueue(id);
@@ -432,18 +409,14 @@ function processAutoRefreshQueue(queue){
             let selector = 'a[href$="' + playerID + '"]';
 
             // Update content
-            $(selector).parent().closest('li.table-row').css('background','rgba(76, 200, 76, 0.2)');
-            let newHtml = '<span class="d-hide bold">Status:</span><span class="t-' + playerData.status.color + '">' + playerData.status.state + '</span>';
-            $(selector).parent().closest('li.table-row').find('div.status').html(newHtml);
-            $(selector).parent().closest('li.table-row').find('div.status').css('color', playerData.status.color);
-            updatePlayerIcon(selector, playerData.last_action.status);
-
+            updatePlayerIcon(selector, playerData);
+            updatePlayerContent(selector, playerData);
 
 
             // CSS timeout for theming.
             setTimeout(()=>{
-                $(selector).parent().closest('li.table-row').css('background','#f2f2f2');
-            }, queryDelay);
+                $(selector).parent().closest('li').toggleClass('torncat-update');
+            }, queryDelay * 2);
         } else {
             let delay = 60 - Math.round((now - queue.start) / 1000);
             console.log('Local API limit hit. Waiting ' + delay + 's');
@@ -455,7 +428,7 @@ function processAutoRefreshQueue(queue){
  * Caches entire faction members' status.
  * @param {string} faction_id
  */
-function processFactionPage(){
+async function processFactionPage(){
 
     let faction_id = null;
     // Preload cache if on a faction page.
@@ -503,16 +476,16 @@ function cacheCall(player_id){
                 if ((!('timestamp' in player) === true) || player.timestamp < (nowEpoch - 30)) {
                     callFlag = true;
                 } else {
-                    console.log('FPF: Cache hit for player ' + player_id);
+                    if (devel) console.log('FPF: Cache hit for player ' + player_id);
                     playerData = player;
                 }
             }
 
 
             if (callFlag) {
-                processFactionPage();
+                await processFactionPage();
                 let url = 'https://api.torn.com/user/' + player_id + '?selections=basic,profile,timestamp&key=' + data.apiKey;
-                await apiCall(url, function (d) {
+                apiCall(url, function (d) {
                     if ('error' in d){
                         reject(d.error.error);
                     }
@@ -542,17 +515,73 @@ function apiCall(url, cb){
     });
 }
 
-function updatePlayerIcon(selector, state){
-    switch (state) {
+function updatePlayerIcon(selector, playerData){
+    switch (playerData.status.state) {
     case 'Offline':
-        $(selector).parent().closest('li.table-row').find('ul#iconTray.singleicon').find('li').first().attr('id','icon2_');
+        $(selector).parent().closest('li').find('ul#iconTray.singleicon').find('li').first().attr('id','icon2_');
+        if (data.checked.offline && !($(selector).parent().closest('li').first().hasClass('torncat-hide-offline'))){
+            $(selector).parent().closest('li').first().addClass('torncat-hide-offline');
+        }
         break;
     case 'Online':
-        $(selector).parent().closest('li.table-row').find('ul#iconTray.singleicon').find('li').first().attr('id','icon1_');
+        $(selector).parent().closest('li').find('ul#iconTray.singleicon').find('li').first().attr('id','icon1_');
+        if (data.checked.offline && ($(selector).parent().closest('li').first().hasClass('torncat-hide-offline'))){
+            $(selector).parent().closest('li').first().removeClass('torncat-hide-offline');
+        }
         break;
-    default:
-        $(selector).parent().closest('li.table-row').find('ul#iconTray.singleicon').find('li').first().attr('id','icon62_');
+    case 'Idle':
+        $(selector).parent().closest('li').find('ul#iconTray.singleicon').find('li').first().attr('id','icon62_');
+        if (data.checked.offline && !($(selector).parent().closest('li').first().hasClass('torncat-hide-offline'))){
+            $(selector).parent().closest('li').first().addClass('torncat-hide-offline');
+        }
+        break;
     }
+}
+
+function updatePlayerContent(selector, playerData){
+    // Row highlight.
+    $(selector).parent().closest('li').toggleClass('torncat-update');
+    
+    let statusColor = playerData.status.color;
+
+    // New status text and color.
+    let newHtml = '<span class="d-hide bold">Status:</span><span class="t-' + statusColor + '">' + playerData.status.state + '</span>';
+    $(selector).parent().closest('li').find('div.status').html(newHtml);
+    $(selector).parent().closest('li').find('div.status').css('color', statusColor);
+    
+
+    // Apply filters, if checked.
+    if (data.checked.revive) {
+        // Hide traveling
+        if ($(selector).parent().closest('li').find('div.status').find('span.t-blue').length) {
+            if (!($(selector).parent().closest('li').first().hasClass('torncat-hide-revive'))){
+                $(selector).parent().closest('li').first().addClass('torncat-hide-revive');
+            }
+        }
+        // Hide Okay
+        if ($(selector).parent().closest('li').find('div.status').find('span.t-green').length) {
+            if (!($(selector).parent().closest('li').first().hasClass('torncat-hide-revive'))){
+                $(selector).parent().closest('li').first().addClass('torncat-hide-revive');
+            }
+        }
+    }
+        
+    if (data.checked.attack) {
+        // Hide traveling
+        if ($(selector).parent().closest('li').find('div.status').find('span.t-blue').length) {
+            if (!($(selector).parent().closest('li').first().hasClass('torncat-hide-attack'))){
+                $(selector).parent().closest('li').first().addClass('torncat-hide-attack');
+            }
+        }
+        // Hide anyone else not OK
+        if ($(selector).parent().closest('li').find('div.status').find('span.t-red').length) {
+            if (!($(selector).parent().closest('li').first().hasClass('torncat-hide-revive'))){
+                $(selector).parent().closest('li').first().addClass('torncat-hide-revive');
+            }
+        }
+    }
+
+
 }
 
 // Queue constructor and methods
@@ -583,6 +612,7 @@ class Queue {
         this.enqueue(element);
     }
     clear() {
+        if(devel) console.debug('API Cache Dump:', apiCache);
         this.elements = [];
     }
 }
@@ -603,7 +633,9 @@ var styles= `
     margin: 0 10px 0 10px;
     text-align: center;
 }
-
+.torncat-update {
+    background: rgba(76, 200, 76, 0.2) !important;
+}
 .torncat-hide-revive {
     display:none !important;
 }
