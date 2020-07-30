@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters (DEV)
 // @namespace    torncat
-// @version      0.3.7
+// @version      0.3.8
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/factions.php*
@@ -17,7 +17,7 @@ var data = data || {};
 var devel = false;
 var maxQueries = 60;
 var queryDelay = 200;
-var apiCache = {};
+var apiDataCache = {};
 
 
 // Following pages don't load the user list via AJAX.
@@ -46,6 +46,16 @@ var manualList = [
             displayTCWidget();
         }
     });
+
+    // Disable filters on Hospital/ Jail pages.
+    if (
+        window.location.href.startsWith('https://www.torn.com/hospital') ||
+        window.location.href.startsWith('https://www.torn.com/jail')
+    ){
+        $('#tc-filter-revive').parent().hide();
+        $('#tc-filter-attack').parent().hide();
+    }
+
 })();
 
 // Load localStorage data.
@@ -267,9 +277,9 @@ function getOnScreenPlayerIDs (offline = false) {
         var playerID = Number(found[0].slice(4));
         var pushPlayer = true;
         if ((
-            $(el).closest('li.table-row').hasClass('torncat-hide-revive') ||
-            $(el).closest('li.table-row').hasClass('torncat-hide-attack') ||
-            $(el).closest('li.table-row').hasClass('torncat-hide-offline')
+            $(el).closest('li').hasClass('torncat-hide-revive') ||
+            $(el).closest('li').hasClass('torncat-hide-attack') ||
+            $(el).closest('li').hasClass('torncat-hide-offline')
         ) && !(offline)){
             pushPlayer = false;
         }
@@ -456,7 +466,7 @@ async function processFactionPage(){
         keys.forEach((player_id)=>{
             let player = d.members[player_id];
             player.timestamp = d.timestamp;
-            apiCache[player_id] = player;
+            apiDataCache[player_id] = player;
         });
     });
 }
@@ -469,10 +479,10 @@ function cacheCall(player_id){
             let now = new Date();
             let nowEpoch = Math.round(now.getTime() / 1000);
             // check if player is in cache
-            if (!(player_id in apiCache)){
+            if (!(player_id in apiDataCache)){
                 callFlag = true;
             } else {
-                let player = apiCache[player_id];
+                let player = apiDataCache[player_id];
                 if ((!('timestamp' in player) === true) || player.timestamp < (nowEpoch - 30)) {
                     callFlag = true;
                 } else {
@@ -489,7 +499,7 @@ function cacheCall(player_id){
                     if ('error' in d){
                         reject(d.error.error);
                     }
-                    apiCache[player_id] = d;
+                    apiDataCache[player_id] = d;
                     resolve(d);
                 });
 
@@ -516,7 +526,7 @@ function apiCall(url, cb){
 }
 
 function updatePlayerIcon(selector, playerData){
-    switch (playerData.status.state) {
+    switch (playerData.last_action.status) {
     case 'Offline':
         $(selector).parent().closest('li').find('ul#iconTray.singleicon').find('li').first().attr('id','icon2_');
         if (data.checked.offline && !($(selector).parent().closest('li').first().hasClass('torncat-hide-offline'))){
@@ -612,7 +622,7 @@ class Queue {
         this.enqueue(element);
     }
     clear() {
-        if(devel) console.debug('API Cache Dump:', apiCache);
+        if(devel) console.debug('API Cache Dump:', apiDataCache);
         this.elements = [];
     }
 }
