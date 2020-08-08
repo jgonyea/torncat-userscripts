@@ -1,7 +1,8 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters Dev
 // @namespace    torncat
-// @version      0.3.10
+// @version      1.0.0
+
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/factions.php*
