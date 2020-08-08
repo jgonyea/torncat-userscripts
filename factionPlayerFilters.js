@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         TornCAT Faction Player Filters Dev
+// @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      1.0.0
+// @version      1.0.1
 
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
@@ -556,7 +556,6 @@ function toggleUserRow(toggleType){
 
     greenStatusList.forEach(el => {
         var line = $(el).parent().closest('li');
-        console.debug(toggleType);
         if(toggleType == 'revive'){
             $(line).toggleClass('torncat-hide-' + toggleType);
         }
