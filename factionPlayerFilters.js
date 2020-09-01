@@ -232,6 +232,7 @@ function renderFilterBar() {
             window.location.href.startsWith('https://www.torn.com/hospital') ||
             window.location.href.startsWith('https://www.torn.com/jail')
         ){
+            $('#tc-filter-revive').prop('checked', true);
             $('#tc-filter-revive').parent().hide();
             $('#tc-filter-attack').parent().hide();
         }
@@ -453,7 +454,7 @@ async function callCache(playerID, recurse = false){
 
     saveCacheData(playerData);
     
-    return new Promise((resolve, reject ) => {
+    return new Promise((resolve) => {
         setTimeout(()=>{
             resolve(playerData);
         }, apiQueryDelay);
@@ -619,6 +620,11 @@ function updatePlayerContent(selector, playerData){
     // Apply highlight.
     $(selector).toggleClass('torncat-update');
 
+    // Remove highlight after a delay.
+    setTimeout(()=>{
+        $(selector).toggleClass('torncat-update');
+    }, apiQueryDelay * 2);
+
     // Update row HTML.
     let newHtml = '<span class="d-hide bold">Status:</span><span class="t-' + statusColor + '">' + playerData.status.state + '</span>';
     $(selector).find('div.status').html(newHtml);
@@ -650,41 +656,40 @@ function updatePlayerContent(selector, playerData){
     }
 
     // Update HTML classes to show/ hide row.
-    if (reviveCheck) {
+    if ($('#tc-filter-revive').prop('checked')) {
         // Hide traveling
-        if ($(selector).find('div.status').find('span.t-blue').length) {
+        if (playerData.status.color == 'blue') {
             if (!($(selector).first().hasClass('torncat-hide-revive'))){
                 $(selector).first().addClass('torncat-hide-revive');
+                if (develCheck) console.debug('FPF: ' + playerData.name + ' is now travelling');
             }
         }
         // Hide Okay
-        if ($(selector).find('div.status').find('span.t-green').length) {
+        if (playerData.status.color == 'green') {
             if (!($(selector).first().hasClass('torncat-hide-revive'))){
                 $(selector).first().addClass('torncat-hide-revive');
+                if (develCheck) console.debug('FPF: ' + playerData.name + ' is Okay and no longer a revivable target.');
             }
         }
+        return;
     }
 
-    if (attackCheck) {
+    if ($('#tc-filter-attack').prop('checked')) {
         // Hide traveling
-        if ($(selector).find('div.status').find('span.t-blue').length) {
+        if (playerData.status.color == 'blue') {
             if (!($(selector).first().hasClass('torncat-hide-attack'))){
                 $(selector).first().addClass('torncat-hide-attack');
+                if (develCheck) console.debug('FPF: ' + playerData.name + ' is now travelling');
             }
         }
         // Hide anyone else not OK
-        if ($(selector).find('div.status').find('span.t-red').length) {
+        if (playerData.status.color == 'red') {
             if (!($(selector).first().hasClass('torncat-hide-revive'))){
                 $(selector).first().addClass('torncat-hide-revive');
+                if (develCheck) console.debug('FPF: ' + playerData.name + ' is no longer an attackable target.');
             }
         }
     }
-
-    // Remove highlight after a delay.
-    setTimeout(()=>{
-        $(selector).toggleClass('torncat-update');
-    }, apiQueryDelay * 2);
-
 }
 
 var styles= `
