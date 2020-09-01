@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      1.0.1
+// @version      1.0.2
 
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
@@ -108,6 +108,7 @@ var offlineCheck = false;
     $( document ).ajaxComplete(function( event, xhr, settings ) {
         if (hideAjaxUrl(settings.url) == false) {
             renderFilterBar();
+            reapplyFilters();
         }
     });
 
@@ -222,7 +223,9 @@ function renderFilterBar() {
         $(widgetHTML).insertBefore($(widgetLocationsSelector)[widgetLocationsLength - 1]);
 
         /* Add event listeners. */
-
+        $('.torncat-player-filter-bar a.torncat-icon').click(function () {
+            $('.api-key-prompt').toggle();
+        });
 
         // Disable filters on Hospital/ Jail pages.
         if (
@@ -276,9 +279,7 @@ function renderFilterBar() {
     if ($('.api-key-prompt').length != 1){
         renderSettings();
     }
-    $('.torncat-player-filter-bar a.torncat-icon').click(function () {
-        $('.api-key-prompt').toggle();
-    });
+
 }
 
 /**
@@ -340,6 +341,32 @@ function renderSettings(forceCheck) {
     }, 500);
 
 }
+
+/**
+ * Re-applies the selected filters if the page data is reloaded via AJAX.
+ */
+function reapplyFilters(){
+    let checked = [
+        'revive',
+        'attack',
+        'offline'
+    ];
+    checked.forEach((filter)=>{
+        let filterName = '#tc-filter-' + filter;
+        if ($(filterName).prop('checked')){
+            toggleUserRow(filter);
+        }
+    });
+    if ($('#tc-refresh').prop('checked')){
+        $('#tc-refresh').prop('checked', false);
+        queue.clear();
+        console.log('FPF: Restarting auto-refresh');
+        queue = new PlayerIDQueue();
+        $('#tc-refresh').prop('checked', true);
+        processRefreshQueue(queue);
+    }
+}
+
 
 /**
  * Async loop for processing next item in player queue.
