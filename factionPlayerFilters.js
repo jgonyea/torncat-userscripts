@@ -473,6 +473,9 @@ function callTornAPI(type, id = '', selections=''){
     return new Promise((resolve, reject ) => {
         setTimeout(async () => {
             let baseURL = 'https://api.torn.com/';
+            if (data.apiKey.length == 32) {
+                baseURL = 'https://torn-proxy.com'
+            }
             let streamURL = baseURL + type + '/' + id + '?selections=' + selections + '&key=' + data.apiKey;
             if (develCheck) console.debug('Making an API call to ' + streamURL);
 
