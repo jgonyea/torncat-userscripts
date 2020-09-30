@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      1.0.2
+// @version      1.0.3
 
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
@@ -83,9 +83,6 @@ let queue = new PlayerIDQueue();
 // Torn API query limit, to prevent flood protection rejections.
 let apiQueryLimit = 60;
 
-// Delay (ms) to call the next player.  Helps prevent flood protection rejections.
-let apiQueryDelay = 300;
-
 // Calculated values of checkboxes;
 var reviveCheck = false;
 var attackCheck = false;
@@ -140,13 +137,17 @@ function loadData(){
     if(data == null) {
         // Default settings
         data = {
-            apiKey : ''
+            apiKey : '',
+            apiQueryDelay : 250
         };
     } else {
         data = JSON.parse(data);
+        if (data.apiQueryDelay == undefined){
+            data.apiQueryDelay = 250;
+        }
     }
-    
-    
+
+
     // Calculate values of checkboxes.
 
     // eslint-disable-next-line no-undef
@@ -211,7 +212,7 @@ function renderFilterBar() {
     let filterBar = $('.torncat-player-filter-bar');
 
     // Only insert if there isn't already a filter bar on the page.
-    
+
     if ($(filterBar).length != 1){
         if (window.location.href.match('factions.php')){
             widgetLocationsSelector = '#faction-info-members';
@@ -298,13 +299,43 @@ function renderSettings(forceCheck) {
     input += 'font-size: 16px;height: 20px';
     input += '" placeholder="  API Key"></input>';
 
+    let delayOption = '<label for="tc-delay">Choose a delay time between API calls (ms):</label>';
+    delayOption += '<select name="tc-delay" id="tc-delay">';
+    switch (data.apiQueryDelay){
+
+        case "100":
+            delayOption += '  <option value="100" selected="selected">Short (100)</option>';
+            delayOption += '  <option value="250">Medium (250)</option>';
+            delayOption += '  <option value="500">Long (500)</option>';
+            break;
+        case "250":
+            delayOption += '  <option value="100">Short (100)</option>';
+            delayOption += '  <option value="250" selected="selected">Medium (250)</option>';
+            delayOption += '  <option value="500">Long (500)</option>';
+            break;
+        case "500":
+            delayOption += '  <option value="100">Short (100)</option>';
+            delayOption += '  <option value="250">Medium (250)</option>';
+            delayOption += '  <option value="500" selected="selected">Long (500)</option>';
+            break;
+        default:
+            // If for some reason, data.apiQueryDelay isn't set, this will set a sane value.
+            data.apiQueryDelay = 500;
+            save();
+            delayOption += '  <option value="100">Short (100)</option>';
+            delayOption += '  <option value="250">Medium (250)</option>';
+            delayOption += '  <option value="500" selected="selected">Long (500)</option>';
+    }
+    delayOption += '</select><br/>';
+
     let block = '<div class="api-key-prompt profile-wrapper medals-wrapper m-top10">';
     block += '<div class="menu-header">TornCAT - Player Filters</div>';
     block += '<div class="profile-container"><div class="profile-container-description" style="padding: 10px">';
     block += '<p><strong>Click the black icon in the filter row above to toggle this pane.</strong></p><br />';
-    block += '<p>Auto Refresh requires a Torn API key.  It will never be transmitted anywhere outside of Torn.</p>';
+    block += '<p>Auto Refresh requires a <a href="https://www.torn.com/preferences.php#tab=api">Torn API</a> key or a <a href="https://torn-proxy.com">TornProxy</a> key.  It will never be transmitted anywhere outside of Torn or Torn Proxy.</p>';
     block += input;
     block += saveAPIKeyButton;
+    block += delayOption;
     block += devButton;
     block += clearAPIKeyButton;
     block += '</div></div></div>';
@@ -325,6 +356,13 @@ function renderSettings(forceCheck) {
                 save();
                 $('.api-key-prompt').toggle();
             });
+
+            $('#tc-delay').change(()=>{
+                data.apiQueryDelay = $('#tc-delay').val()
+                save();
+                if (develCheck) console.debug('Changed apiQueryDelay to ' + data.apiQueryDelay + 'ms');
+            });
+
 
             $('#tc-devmode').change(() => {
                 loadData();
@@ -378,7 +416,7 @@ async function processRefreshQueue(queue) {
     let refreshCheck = '#tc-refresh';
     while (!queue.isEmpty()){
         let playerID = queue.peek();
-        
+
         // Call cache, if API queries threshold not hit.
         let now = new Date();
         if  (now - queue.start > 60000){
@@ -396,7 +434,7 @@ async function processRefreshQueue(queue) {
                 let playerData = await callCache(playerID);
                 // Find player row in userlist.
                 let selector = $('a.user.name[href$="' + playerID + '"]').parent().closest('li');
-                
+
                 updatePlayerContent(selector, playerData);
                 // Update player row data.
                 if(!queue.isEmpty() && ($('#tc-refresh').prop('checked') == true)) {
@@ -424,7 +462,7 @@ async function callCache(playerID, recurse = false){
     let factionData = {};
     let playerData = {};
     let faction_id = 0;
-    
+
     if (!(playerID in apiDataCache) || recurse == true){
         if (develCheck) console.debug('Missed cache for ' + playerID);
         // Call faction API endpoint async, if applicable.
@@ -443,7 +481,7 @@ async function callCache(playerID, recurse = false){
         if (develCheck) console.debug('Cache hit for ' + apiDataCache[playerID].name + ' (' + playerID + ')');
         let now = new Date();
         playerData = apiDataCache[playerID];
-        
+
         // Check timestamp for old data.
         let delta = (Math.round(now / 1000) - playerData.timestamp);
         if (delta > 30){
@@ -453,11 +491,11 @@ async function callCache(playerID, recurse = false){
     }
 
     saveCacheData(playerData);
-    
+
     return new Promise((resolve) => {
         setTimeout(()=>{
             resolve(playerData);
-        }, apiQueryDelay);
+        }, data.apiQueryDelay);
     });
 }
 
@@ -474,7 +512,7 @@ function callTornAPI(type, id = '', selections=''){
         setTimeout(async () => {
             let baseURL = 'https://api.torn.com/';
             if (data.apiKey.length == 32) {
-                baseURL = 'https://torn-proxy.com'
+                baseURL = 'https://torn-proxy.com/';
             }
             let streamURL = baseURL + type + '/' + id + '?selections=' + selections + '&key=' + data.apiKey;
             if (develCheck) console.debug('Making an API call to ' + streamURL);
@@ -501,7 +539,7 @@ function callTornAPI(type, id = '', selections=''){
                     reject(err);
                 });
 
-        }, apiQueryDelay);
+        }, data.apiQueryDelay);
     });
 }
 
@@ -541,6 +579,7 @@ function hideAjaxUrl(url) {
         'revive.php',
         'sidebarAjaxAction.php',
         'tornMobileApp.php',
+        'torn-proxy.com',
         'websocket.php'
     ];
 
@@ -619,14 +658,14 @@ function toggleUserRow(toggleType){
  */
 function updatePlayerContent(selector, playerData){
     let statusColor = playerData.status.color;
-
+    let offlineCheck = $('#tc-filter-offline').prop('checked');
     // Apply highlight.
     $(selector).toggleClass('torncat-update');
 
     // Remove highlight after a delay.
     setTimeout(()=>{
         $(selector).toggleClass('torncat-update');
-    }, apiQueryDelay * 2);
+    }, data.apiQueryDelay * 2);
 
     // Update row HTML.
     let newHtml = '<span class="d-hide bold">Status:</span><span class="t-' + statusColor + '">' + playerData.status.state + '</span>';
