@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      1.0.3
+// @version      1.0.4
 
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
@@ -303,28 +303,28 @@ function renderSettings(forceCheck) {
     delayOption += '<select name="tc-delay" id="tc-delay">';
     switch (data.apiQueryDelay){
 
-        case "100":
-            delayOption += '  <option value="100" selected="selected">Short (100)</option>';
-            delayOption += '  <option value="250">Medium (250)</option>';
-            delayOption += '  <option value="500">Long (500)</option>';
-            break;
-        case "250":
-            delayOption += '  <option value="100">Short (100)</option>';
-            delayOption += '  <option value="250" selected="selected">Medium (250)</option>';
-            delayOption += '  <option value="500">Long (500)</option>';
-            break;
-        case "500":
-            delayOption += '  <option value="100">Short (100)</option>';
-            delayOption += '  <option value="250">Medium (250)</option>';
-            delayOption += '  <option value="500" selected="selected">Long (500)</option>';
-            break;
-        default:
-            // If for some reason, data.apiQueryDelay isn't set, this will set a sane value.
-            data.apiQueryDelay = 500;
-            save();
-            delayOption += '  <option value="100">Short (100)</option>';
-            delayOption += '  <option value="250">Medium (250)</option>';
-            delayOption += '  <option value="500" selected="selected">Long (500)</option>';
+    case '100':
+        delayOption += '  <option value="100" selected="selected">Short (100)</option>';
+        delayOption += '  <option value="250">Medium (250)</option>';
+        delayOption += '  <option value="500">Long (500)</option>';
+        break;
+    case '250':
+        delayOption += '  <option value="100">Short (100)</option>';
+        delayOption += '  <option value="250" selected="selected">Medium (250)</option>';
+        delayOption += '  <option value="500">Long (500)</option>';
+        break;
+    case '500':
+        delayOption += '  <option value="100">Short (100)</option>';
+        delayOption += '  <option value="250">Medium (250)</option>';
+        delayOption += '  <option value="500" selected="selected">Long (500)</option>';
+        break;
+    default:
+        // If for some reason, data.apiQueryDelay isn't set, this will set a sane value.
+        data.apiQueryDelay = 500;
+        save();
+        delayOption += '  <option value="100">Short (100)</option>';
+        delayOption += '  <option value="250">Medium (250)</option>';
+        delayOption += '  <option value="500" selected="selected">Long (500)</option>';
     }
     delayOption += '</select><br/>';
 
@@ -332,7 +332,7 @@ function renderSettings(forceCheck) {
     block += '<div class="menu-header">TornCAT - Player Filters</div>';
     block += '<div class="profile-container"><div class="profile-container-description" style="padding: 10px">';
     block += '<p><strong>Click the black icon in the filter row above to toggle this pane.</strong></p><br />';
-    block += '<p>Auto Refresh requires a <a href="https://www.torn.com/preferences.php#tab=api">Torn API</a> key or a <a href="https://torn-proxy.com">TornProxy</a> key.  It will never be transmitted anywhere outside of Torn or Torn Proxy.</p>';
+    block += '<p>Auto Refresh requires a <a href="https://www.torn.com/preferences.php#tab=api">Torn API</a> key.  It will never be transmitted anywhere outside of Torn</p>';
     block += input;
     block += saveAPIKeyButton;
     block += delayOption;
@@ -358,7 +358,7 @@ function renderSettings(forceCheck) {
             });
 
             $('#tc-delay').change(()=>{
-                data.apiQueryDelay = $('#tc-delay').val()
+                data.apiQueryDelay = $('#tc-delay').val();
                 save();
                 if (develCheck) console.debug('Changed apiQueryDelay to ' + data.apiQueryDelay + 'ms');
             });
@@ -511,9 +511,6 @@ function callTornAPI(type, id = '', selections=''){
     return new Promise((resolve, reject ) => {
         setTimeout(async () => {
             let baseURL = 'https://api.torn.com/';
-            if (data.apiKey.length == 32) {
-                baseURL = 'https://torn-proxy.com/';
-            }
             let streamURL = baseURL + type + '/' + id + '?selections=' + selections + '&key=' + data.apiKey;
             if (develCheck) console.debug('Making an API call to ' + streamURL);
 
