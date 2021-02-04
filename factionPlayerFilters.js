@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      1.0.4
+// @version      1.0.5
 
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
@@ -138,7 +138,8 @@ function loadData(){
         // Default settings
         data = {
             apiKey : '',
-            apiQueryDelay : 250
+            apiQueryDelay : 250,
+            hideFactionDescription: false
         };
     } else {
         data = JSON.parse(data);
@@ -289,17 +290,18 @@ function renderFilterBar() {
  */
 function renderSettings(forceCheck) {
     // Generate HTMl.
-    let saveAPIKeyButton = '<button id="JApiKeyBtn">Save</button><br/><br />';
-    let devButton = '<span class="torncat-label">Devel Mode</span><input class="torncat-checkbox" id="tc-devmode" type="checkbox"><br /><br />';
+    let saveAPIKeyButton = '<button class="torn-btn" id="JApiKeyBtn">Save</button>';
+    let hideFactionDescription = '<br/><span class="torncat-label">Hide Faction Description</span><input class="torncat-checkbox" id="tc-hideFactionDescription" type="checkbox"><br /><br />';
+    let devButton = '<span class="torncat-label">Devel Mode </span><input class="torncat-checkbox" id="tc-devmode" type="checkbox"><br /><br />';
     let clearAPIKeyButton = '<button class="torn-btn" onclick="localStorage.removeItem(\'torncat.factionFilters\');location.reload();">Clear API Key</button><br /><br />';
     let input = '<input type="text" id="JApiKeyInput" style="';
     input += 'border-radius: 8px 0 0 8px;';
     input += 'margin: 4px 0px;';
     input += 'padding: 5px;';
     input += 'font-size: 16px;height: 20px';
-    input += '" placeholder="  API Key"></input>';
+    input += '" placeholder="  API Key"></input><br/><br/>';
 
-    let delayOption = '<label for="tc-delay">Choose a delay time between API calls (ms):</label>';
+    let delayOption = '<label for="tc-delay">Delay time between API calls (ms):</label>';
     delayOption += '<select name="tc-delay" id="tc-delay">';
     switch (data.apiQueryDelay){
 
@@ -334,20 +336,25 @@ function renderSettings(forceCheck) {
     block += '<p><strong>Click the black icon in the filter row above to toggle this pane.</strong></p><br />';
     block += '<p>Auto Refresh requires a <a href="https://www.torn.com/preferences.php#tab=api">Torn API</a> key.  It will never be transmitted anywhere outside of Torn</p>';
     block += input;
-    block += saveAPIKeyButton;
     block += delayOption;
+    block += hideFactionDescription;
     block += devButton;
+    block += saveAPIKeyButton + ' | ';
     block += clearAPIKeyButton;
     block += '</div></div></div>';
     setTimeout(()=>{
         if ($('.api-key-prompt').length != 1){
             $(block).insertAfter('.torncat-player-filter-bar');
 
-
+            // Re-enter saved data.
             if (data.apiKey != ''){
                 $('#JApiKeyInput').val(data.apiKey);
             }
 
+            if (data.hideFactionDescription) {
+                $('#tc-hideFactionDescription').prop('checked', true);
+                $('.faction-description').hide();
+            }
 
             // Add event listeners.
 
@@ -371,7 +378,21 @@ function renderSettings(forceCheck) {
                 console.debug('apiDataCache', apiDataCache);
                 console.debug('queue', queue);
             });
+
+            $('#tc-hideFactionDescription').change(()=>{
+                data.hideFactionDescription = $('#tc-hideFactionDescription').attr('checked') ? true : false;
+                save();
+                if (data.hideFactionDescription){
+                    $('.faction-description').hide();
+                } else {
+                    $('.faction-description').show();
+                }
+                document.querySelector('.torncat-player-filter-bar').scrollIntoView({
+                    behavior: 'smooth'
+                });
+            });
         }
+
         if (forceCheck == true){
             $('.api-key-prompt').show();
         } else {
