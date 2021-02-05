@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      1.0.6
+// @version      1.1.0
 
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
@@ -139,7 +139,9 @@ function loadData(){
         data = {
             apiKey : '',
             apiQueryDelay : 250,
-            hideFactionDescription: false
+            hideFactionDescription: false,
+            queries: 0,
+            start: '0'
         };
     } else {
         data = JSON.parse(data);
@@ -226,7 +228,7 @@ function renderFilterBar() {
         $(widgetHTML).insertBefore($(widgetLocationsSelector)[widgetLocationsLength - 1]);
 
         // Scroll mobile view.
-        if ($(window).width() < 601 && data.hideFactionDescription ) {
+        if ($(window).width() < 1000 && data.hideFactionDescription ) {
             setTimeout(() => {
                 document.querySelector('.torncat-player-filter-bar').scrollIntoView({
                     behavior: 'smooth'
@@ -282,6 +284,8 @@ function renderFilterBar() {
                 processRefreshQueue(queue);
             } else {
                 console.log('FPF: Stopped processing queue. Queue cleared');
+                loadData();
+                if(develCheck) console.debug(data);
                 queue.clear();
             }
 
@@ -445,22 +449,43 @@ function reapplyFilters(){
  */
 async function processRefreshQueue(queue) {
     let refreshCheck = '#tc-refresh';
+    let limited = false;
     while (!queue.isEmpty()){
+        if(develCheck) console.debug('Current API calls: ' + data.queries);
+        loadData();
         let playerID = queue.peek();
-
         // Call cache, if API queries threshold not hit.
         let now = new Date();
-        if  (now - queue.start > 60000){
-            queue.queries = 0;
+
+        if  ( now.getMinutes() != data.start ){
+            console.log('FPF: Reset API call limit.  Highwater mark: ' + data.queries + ' API calls.');
+            data.queries = 0;
+            data.start = now.getMinutes();
             queue.start = now;
-            console.log('FPF: Reset API call limit');
+            save();
         }
 
-        if (queue.queries > apiQueryLimit){
-            let delay = 60 - Math.round((now - queue.start) / 1000);
+        if (data.queries > apiQueryLimit && limited == false){
+            let delay = (60 - now.getSeconds());
             console.log('Hit local API query limit of (' + apiQueryLimit + '). Waiting ' + delay + 's');
+            limited = true;
+            // Disable queue.
+            queue.clear();
+            $('#tc-refresh').attr('disabled', true);
+            setInterval(()=>{
+                // Reinitiate queue.
+                $('#tc-refresh').prop('checked', false);
+                $('#tc-refresh').attr('disabled', false);
+                queue.clear();
+                console.log('FPF: Restarting auto-refresh');
+                queue = new PlayerIDQueue();
+                $('#tc-refresh').prop('checked', true);
+                processRefreshQueue(queue);
+            }, delay * 1000);
+
             continue;
-        } else {
+        } else if (!limited){
+            limited = false;
             try{
                 let playerData = await callCache(playerID);
                 // Find player row in userlist.
@@ -538,7 +563,7 @@ async function callCache(playerID, recurse = false){
  * @param {string} selections
  */
 function callTornAPI(type, id = '', selections=''){
-    queue.queries = queue.queries + 1;
+    loadData();
     return new Promise((resolve, reject ) => {
         setTimeout(async () => {
             let baseURL = 'https://api.torn.com/';
@@ -559,6 +584,8 @@ function callTornAPI(type, id = '', selections=''){
                     if (result.error != undefined){
                         reject(result.error);
                     } else {
+                        data.queries++;
+                        save();
                         resolve(result);
                     }
                 })
