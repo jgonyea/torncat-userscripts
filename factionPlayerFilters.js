@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      1.0.5
+// @version      1.0.6
 
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
@@ -215,6 +215,7 @@ function renderFilterBar() {
     // Only insert if there isn't already a filter bar on the page.
 
     if ($(filterBar).length != 1){
+
         if (window.location.href.match('factions.php')){
             widgetLocationsSelector = '#faction-info-members';
         } else {
@@ -223,6 +224,15 @@ function renderFilterBar() {
 
         var widgetLocationsLength = $(widgetLocationsSelector).length;
         $(widgetHTML).insertBefore($(widgetLocationsSelector)[widgetLocationsLength - 1]);
+
+        // Scroll mobile view.
+        if ($(window).width() < 601 && data.hideFactionDescription ) {
+            setTimeout(() => {
+                document.querySelector('.torncat-player-filter-bar').scrollIntoView({
+                    behavior: 'smooth'
+                });
+            },2000);
+        }
 
         /* Add event listeners. */
         $('.torncat-player-filter-bar a.torncat-icon').click(function () {
@@ -291,8 +301,8 @@ function renderFilterBar() {
 function renderSettings(forceCheck) {
     // Generate HTMl.
     let saveAPIKeyButton = '<button class="torn-btn" id="JApiKeyBtn">Save</button>';
-    let hideFactionDescription = '<br/><span class="torncat-label">Hide Faction Description</span><input class="torncat-checkbox" id="tc-hideFactionDescription" type="checkbox"><br /><br />';
-    let devButton = '<span class="torncat-label">Devel Mode </span><input class="torncat-checkbox" id="tc-devmode" type="checkbox"><br /><br />';
+    let hideFactionDescription = '<br/><input class="torncat-checkbox" id="tc-hideFactionDescription" type="checkbox"> <span class="torncat-label">Hide Faction Description</span><br /><br />';
+    let devButton = '<input class="torncat-checkbox" id="tc-devmode" type="checkbox"> <span class="torncat-label">Devel Mode </span><br /><br />';
     let clearAPIKeyButton = '<button class="torn-btn" onclick="localStorage.removeItem(\'torncat.factionFilters\');location.reload();">Clear API Key</button><br /><br />';
     let input = '<input type="text" id="JApiKeyInput" style="';
     input += 'border-radius: 8px 0 0 8px;';
