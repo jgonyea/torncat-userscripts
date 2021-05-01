@@ -1,19 +1,38 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      1.1.0
-
+// @version      1.2.0
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
-// @match        https://www.torn.com/factions.php*
-// @match        https://www.torn.com/hospitalview.php*
-// @match        https://www.torn.com/jailview.php*
-// @match        https://www.torn.com/index.php?page=people*
-// @match        https://www.torn.com/*list.php*
-// @grant        GM_addStyle
+// @match        https://www.torn.com/factions.php
+// @match        https://www.torn.com/friendlist.php
+// @match        https://www.torn.com/blacklist.php
+// @match        https://www.torn.com/hospitalview.php
+// @match        https://www.torn.com/jailview.php
+// @match        https://www.torn.com/index.php?page=people
 // ==/UserScript==
 
 'use strict';
+
+let apikey = '###PDA-APIKEY###';
+let tornPdaMode = false;
+
+// Need to check if script is running within TornPDA app.
+if (apikey.slice(-1) != '#') {
+    // Script is running in TornPDA mode.
+    tornPdaMode = true;
+}
+
+
+// Override the GM_addStyle function so it can be used within TornPDA.
+let GM_addStyle = function(s)
+{
+    let style = document.createElement("style");
+    style.type = "text/css";
+    style.innerHTML = s;
+
+    document.head.appendChild(style);
+};
 
 // Class declarations
 /************************************** */
@@ -61,7 +80,7 @@ class PlayerIDQueue {
         this.enqueue(element);
     }
     clear() {
-        if(develCheck) console.debug('API Cache Dump:', apiDataCache);
+        if( !tornPdaMode && develCheck ) console.debug('API Cache Dump:', apiDataCache);
         this.playerIDs = [];
     }
 }
@@ -100,7 +119,6 @@ var offlineCheck = false;
     // Save data back to localStorage;
     save();
 
-
     // Automatically display widget for pages that load user lists via AJAX.
     $( document ).ajaxComplete(function( event, xhr, settings ) {
         if (hideAjaxUrl(settings.url) == false) {
@@ -115,8 +133,10 @@ var offlineCheck = false;
         'page=people',
         'step=profile',
         'blacklist.php',
-        'friendlist.php'
-
+        'friendlist.php',
+        'hospitalview.php',
+        'jailview.php',
+        'factions.php',
     ];
 
     manualList.forEach(el =>{
@@ -137,7 +157,7 @@ function loadData(){
     if(data == null) {
         // Default settings
         data = {
-            apiKey : '',
+            apiKey : apikey,
             apiQueryDelay : 250,
             hideFactionDescription: false,
             queries: 0,
@@ -285,7 +305,7 @@ function renderFilterBar() {
             } else {
                 console.log('FPF: Stopped processing queue. Queue cleared');
                 loadData();
-                if(develCheck) console.debug(data);
+                if( !tornPdaMode && develCheck ) console.debug(data);
                 queue.clear();
             }
 
@@ -348,13 +368,17 @@ function renderSettings(forceCheck) {
     block += '<div class="menu-header">TornCAT - Player Filters</div>';
     block += '<div class="profile-container"><div class="profile-container-description" style="padding: 10px">';
     block += '<p><strong>Click the black icon in the filter row above to toggle this pane.</strong></p><br />';
-    block += '<p>Auto Refresh requires a <a href="https://www.torn.com/preferences.php#tab=api">Torn API</a> key.  It will never be transmitted anywhere outside of Torn</p>';
-    block += input;
+    if (!tornPdaMode) {
+        block += '<p>Auto Refresh requires a <a href="https://www.torn.com/preferences.php#tab=api">Torn API</a> key.  It will never be transmitted anywhere outside of Torn</p>';
+        block += input;
+    }
     block += delayOption;
     block += hideFactionDescription;
-    block += devButton;
-    block += saveAPIKeyButton + ' | ';
-    block += clearAPIKeyButton;
+    if (!tornPdaMode) {
+        block += devButton;
+        block += saveAPIKeyButton + ' | ';
+        block += clearAPIKeyButton;
+    }
     block += '</div></div></div>';
     setTimeout(()=>{
         if ($('.api-key-prompt').length != 1){
@@ -381,16 +405,18 @@ function renderSettings(forceCheck) {
             $('#tc-delay').change(()=>{
                 data.apiQueryDelay = $('#tc-delay').val();
                 save();
-                if (develCheck) console.debug('Changed apiQueryDelay to ' + data.apiQueryDelay + 'ms');
+                 if( !tornPdaMode && develCheck ) console.debug('Changed apiQueryDelay to ' + data.apiQueryDelay + 'ms');
             });
 
 
             $('#tc-devmode').change(() => {
                 loadData();
-                console.debug('FPF Devel mode set to ' + develCheck);
-                console.debug('data:', data);
-                console.debug('apiDataCache', apiDataCache);
-                console.debug('queue', queue);
+                if (!tornPdaMode){
+                    console.debug('FPF Devel mode set to ' + develCheck);
+                    console.debug('data:', data);
+                    console.debug('apiDataCache', apiDataCache);
+                    console.debug('queue', queue);
+                }
             });
 
             $('#tc-hideFactionDescription').change(()=>{
@@ -451,7 +477,7 @@ async function processRefreshQueue(queue) {
     let refreshCheck = '#tc-refresh';
     let limited = false;
     while (!queue.isEmpty()){
-        if(develCheck) console.debug('Current API calls: ' + data.queries);
+        if( !tornPdaMode && develCheck ) console.debug('Current API calls: ' + data.queries);
         loadData();
         let playerID = queue.peek();
         // Call cache, if API queries threshold not hit.
@@ -520,7 +546,7 @@ async function callCache(playerID, recurse = false){
     let faction_id = 0;
 
     if (!(playerID in apiDataCache) || recurse == true){
-        if (develCheck) console.debug('Missed cache for ' + playerID);
+        if( !tornPdaMode && develCheck ) console.debug('Missed cache for ' + playerID);
         // Call faction API endpoint async, if applicable.
         if (window.location.href.startsWith('https://www.torn.com/factions.php')){
             let searchParams = new URLSearchParams(window.location.search);
@@ -534,14 +560,14 @@ async function callCache(playerID, recurse = false){
         // Call user API endpoint async
         playerData = await callTornAPI('user', playerID, 'basic,profile,timestamp');
     } else {
-        if (develCheck) console.debug('Cache hit for ' + apiDataCache[playerID].name + ' (' + playerID + ')');
+        if( !tornPdaMode && develCheck ) console.debug('Cache hit for ' + apiDataCache[playerID].name + ' (' + playerID + ')');
         let now = new Date();
         playerData = apiDataCache[playerID];
 
         // Check timestamp for old data.
         let delta = (Math.round(now / 1000) - playerData.timestamp);
         if (delta > 30){
-            if (develCheck) console.debug('Cache expired for ' + apiDataCache[playerID].name + ' (' + playerID + ')');
+            if( !tornPdaMode && develCheck ) console.debug('Cache expired for ' + apiDataCache[playerID].name + ' (' + playerID + ')');
             playerData = await callCache(playerID, true);
         }
     }
@@ -568,7 +594,7 @@ function callTornAPI(type, id = '', selections=''){
         setTimeout(async () => {
             let baseURL = 'https://api.torn.com/';
             let streamURL = baseURL + type + '/' + id + '?selections=' + selections + '&key=' + data.apiKey;
-            if (develCheck) console.debug('Making an API call to ' + streamURL);
+             if( !tornPdaMode && develCheck ) console.debug('Making an API call to ' + streamURL);
 
             // Reject if key isn't set.
             if (data.apiKey == undefined || data.apiKey == '') {
@@ -733,21 +759,21 @@ function updatePlayerContent(selector, playerData){
         $(selector).find('ul#iconTray.singleicon').find('li').first().attr('id','icon2_');
         if (offlineCheck && !($(selector).first().hasClass('torncat-hide-offline'))){
             $(selector).first().addClass('torncat-hide-offline');
-            if (develCheck) console.log('FPF: ' + playerData.name + ' went offline');
+             if( !tornPdaMode && develCheck ) console.log('FPF: ' + playerData.name + ' went offline');
         }
         break;
     case 'Online':
         $(selector).find('ul#iconTray.singleicon').find('li').first().attr('id','icon1_');
         if (offlineCheck && ($(selector).first().hasClass('torncat-hide-offline'))){
             $(selector).first().removeClass('torncat-hide-offline');
-            if (develCheck) console.log('FPF: ' + playerData.name + ' came online');
+             if( !tornPdaMode && develCheck ) console.log('FPF: ' + playerData.name + ' came online');
         }
         break;
     case 'Idle':
         $(selector).find('ul#iconTray.singleicon').find('li').first().attr('id','icon62_');
         if (offlineCheck && !($(selector).first().hasClass('torncat-hide-offline'))){
             $(selector).first().addClass('torncat-hide-offline');
-            if (develCheck) console.log('FPF: ' + playerData.name + ' became idle');
+             if( !tornPdaMode && develCheck ) console.log('FPF: ' + playerData.name + ' became idle');
         }
         break;
     }
@@ -758,14 +784,14 @@ function updatePlayerContent(selector, playerData){
         if (playerData.status.color == 'blue') {
             if (!($(selector).first().hasClass('torncat-hide-revive'))){
                 $(selector).first().addClass('torncat-hide-revive');
-                if (develCheck) console.debug('FPF: ' + playerData.name + ' is now travelling');
+                 if( !tornPdaMode && develCheck ) console.debug('FPF: ' + playerData.name + ' is now travelling');
             }
         }
         // Hide Okay
         if (playerData.status.color == 'green') {
             if (!($(selector).first().hasClass('torncat-hide-revive'))){
                 $(selector).first().addClass('torncat-hide-revive');
-                if (develCheck) console.debug('FPF: ' + playerData.name + ' is Okay and no longer a revivable target.');
+                 if( !tornPdaMode && develCheck ) console.debug('FPF: ' + playerData.name + ' is Okay and no longer a revivable target.');
             }
         }
         return;
@@ -776,14 +802,14 @@ function updatePlayerContent(selector, playerData){
         if (playerData.status.color == 'blue') {
             if (!($(selector).first().hasClass('torncat-hide-attack'))){
                 $(selector).first().addClass('torncat-hide-attack');
-                if (develCheck) console.debug('FPF: ' + playerData.name + ' is now travelling');
+                 if( !tornPdaMode && develCheck ) console.debug('FPF: ' + playerData.name + ' is now travelling');
             }
         }
         // Hide anyone else not OK
         if (playerData.status.color == 'red') {
             if (!($(selector).first().hasClass('torncat-hide-revive'))){
                 $(selector).first().addClass('torncat-hide-revive');
-                if (develCheck) console.debug('FPF: ' + playerData.name + ' is no longer an attackable target.');
+                 if( !tornPdaMode && develCheck ) console.debug('FPF: ' + playerData.name + ' is no longer an attackable target.');
             }
         }
     }
