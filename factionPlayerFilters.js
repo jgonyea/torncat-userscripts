@@ -1,24 +1,19 @@
 // ==UserScript==
 // @name         TornCAT Faction Player Filters
 // @namespace    torncat
-// @version      1.2.1
+// @version      1.2.2
 // @description  This script adds player filters on various pages (see matches below).
 // @author       Wingmanjd[2127679]
 // @match        https://www.torn.com/factions.php*
 // @match        https://www.torn.com/hospitalview.php*
 // @match        https://www.torn.com/jailview.php*
 // @match        https://www.torn.com/index.php?page=people*
+// @match        https://www.torn.com/friendlist.php*
+// @match        https://www.torn.com/blacklist.php*
 
-// @match        https://www.torn.com/factions.php
-// @match        https://www.torn.com/friendlist.php
-// @match        https://www.torn.com/blacklist.php
-// @match        https://www.torn.com/hospitalview.php
-// @match        https://www.torn.com/jailview.php
-// @match        https://www.torn.com/index.php?page=people
 // ==/UserScript==
 
 'use strict';
-// There appear to be doubles in the match section above due to differences between how TornPDA and TamperMonkey URL matching work.
 
 let apikey = '###PDA-APIKEY###';
 let tornPdaMode = false;
