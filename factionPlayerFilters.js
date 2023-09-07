@@ -239,6 +239,11 @@ function renderFilterBar() {
 
     if ($(filterBar).length != 1){
 
+        /*waitForElm('.some-class').then((elm) => {
+            console.log('Element is ready');
+            console.log(elm.textContent);
+        });*/
+
         if (window.location.href.match('factions.php')){
             widgetLocationsSelector = '#faction-info-members';
         } else {
@@ -814,6 +819,31 @@ function updatePlayerContent(selector, playerData){
             }
         }
     }
+}
+
+/**
+ * Waits for element to appear in DOM.
+ * @param {*} selector
+ * @returns
+ */
+function waitForElm(selector) {
+    return new Promise(resolve => {
+        if (document.querySelector(selector)) {
+            return resolve(document.querySelector(selector));
+        }
+
+        const observer = new MutationObserver(mutations => {
+            if (document.querySelector(selector)) {
+                observer.disconnect();
+                resolve(document.querySelector(selector));
+            }
+        });
+
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    });
 }
 
 var styles= `
