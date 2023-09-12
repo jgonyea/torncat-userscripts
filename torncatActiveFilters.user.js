@@ -34,8 +34,8 @@ if (apikey.slice(-1) != '#') {
 // Override the GM_addStyle function so it can be used within TornPDA.
 let GM_addStyle = function(s)
 {
-    let style = document.createElement("style");
-    style.type = "text/css";
+    let style = document.createElement('style');
+    style.type = 'text/css';
     style.innerHTML = s;
 
     document.head.appendChild(style);
@@ -115,8 +115,22 @@ var data = data || {};
 *  Main Script
 */
 (function() {
-    console.debug("TornCAT Active Filters started...");
-    console.debug(data);
+    console.debug('TornCAT Active Filters (TCAF) started...');
+
+    // New Array prototype method.
+    Array.prototype.unique = function() {
+        var a = this.concat();
+        for(var i=0; i<a.length; ++i) {
+            for(var j=i+1; j<a.length; ++j) {
+                if(a[i] === a[j])
+                    a.splice(j--, 1);
+            }
+        }
+
+        return a;
+    };
+
+
     let widgetLocationsSelector = '';
 
     // Set userlist based on page.
@@ -168,7 +182,6 @@ var data = data || {};
         let attackCheck = '#tc-filter-attack';
         let offlineCheck = '#tc-filter-offline';
         let refreshCheck = '#tc-refresh';
-        let widgetLocationsSelector = '';
 
         let widgetHTML = `
             <div class="torncat-player-filter-bar">
@@ -374,7 +387,7 @@ var data = data || {};
                 $('#tc-devmode').change(() => {
                     loadData();
                     if (!tornPdaMode){
-                        console.debug('FPF Devel mode set to ' + develCheck);
+                        console.debug('TCAF Devel mode set to ' + develCheck);
                         console.debug('data:', data);
                         console.debug('apiDataCache', apiDataCache);
                         console.debug('queue', queue);
@@ -409,44 +422,51 @@ var data = data || {};
      * @param {string} toggleType
      */
     function toggleUserRow(toggleType){
-        let selector = {
-            "fallen": ".user-red-status",
-            "federal": ".user-red-status",
-            "hospital": ".user-red-status",
-            "idle": "li [id^='icon62_']",
-            "offline": "li [id^='icon2_']",
-            "okay": ".user-green-status"
+        var selector = {
+            'abroad': 'span.user-red-status:contains("Abroad")',
+            'fallen': 'span.user-red-status:contains("Fallen")',
+            'federal': 'span.user-red-status:contains("Federal")',
+            'hospital': 'span.user-red-status:contains("Hospital")',
+            'idle': 'li [id^="icon62_"]',
+            'traveling': '.user-blue-status',
+            'offline': 'li [id^="icon2_"]',
+            'okay': '.user-green-status'
         };
 
         if (window.location.href.match('factions.php')) {
             selector = {
-                "fallen": ".ellipsis.fallen",
-                "federal": ".ellipsis.federal",
-                "hospital": ".ellipsis.hospital",
-                "idle": "li [id*='idle-user']",
-                "offline": "li [id*='offline-user']",
-                "okay": ".ellipsis.okay"
+                'abroad': '.ellipsis.abroad',
+                'fallen': '.ellipsis.fallen',
+                'federal': '.ellipsis.federal',
+                'hospital': '.ellipsis.hospital',
+                'idle': 'li [id*="idle-user"]',
+                'traveling': '.ellipsis.traveling',
+                'offline': 'li [id*="offline-user"]',
+                'okay': '.ellipsis.okay'
             };
-            
-            redSelector = '.ellipsis.not-okay';
-            greenSelector = '.ellipsis.okay';
-            blueSelector = '.ellipsis.abroad';
         }
 
-        var redStatusList = $(redSelector).toArray();
-        var greenStatusList = $(greenSelector).toArray();
-        var blueStatusList = $(blueSelector).toArray();
-
         if (toggleType == 'offline') {
-            var idleList = $("li [id*='idle-user']").toArray();
-            var offlineList = $("li [id*='offline-user']").toArray();
+            var idleList = $(selector.idle).toArray();
+            var offlineList = $(selector.offline).toArray();
 
             var awayList = idleList.concat(offlineList);
             awayList.forEach(el =>{
                 $(el).parent().closest('li').toggleClass('torncat-hide-' + toggleType);
             });
+
+            // Stop processing other toggles.
             return;
         }
+
+        var greenStatusList = $(selector.okay).toArray();
+        var blueStatusList = $(selector.abroad).toArray()
+            .concat($(selector.traveling).toArray())
+            .unique();
+        var redStatusList = $(selector.fallen).toArray()
+            .concat($(selector.federal).toArray())
+            .concat($(selector.hospital).toArray())
+            .unique();
 
         blueStatusList.forEach(el => {
             var line = $(el).parent().closest('li');
@@ -463,7 +483,6 @@ var data = data || {};
 
         redStatusList.forEach(el => {
             var matches = [
-                'Traveling',
                 'Fallen',
                 'Federal'
             ];
@@ -473,8 +492,7 @@ var data = data || {};
                 $(line).toggleClass('torncat-hide-' + toggleType);
             } else {
                 matches.forEach(match => {
-                    console.debug(el);
-                    if ($(el).html().endsWith(match) || $(el).html().endsWith(match + ' ')) {
+                    if ($(el).html().trim().endsWith(match)) {
                         var line = $(el).closest('li');
                         $(line).toggleClass('torncat-hide-' + toggleType);
                     }
@@ -499,7 +517,7 @@ var data = data || {};
             let now = new Date();
 
             if  ( now.getMinutes() != data.start ){
-                console.log('TornCAT Active Filters: Reset API call limit.  Highwater mark: ' + data.queries + ' API calls.');
+                console.log('TCAF: Reset API call limit.  Highwater mark: ' + data.queries + ' API calls.');
                 data.queries = 0;
                 data.start = now.getMinutes();
                 queue.start = now;
@@ -518,7 +536,7 @@ var data = data || {};
                     $('#tc-refresh').prop('checked', false);
                     $('#tc-refresh').attr('disabled', false);
                     queue.clear();
-                    console.log('TornCAT Active Filters: Restarting auto-refresh');
+                    console.log('TCAF: Restarting auto-refresh');
                     queue = new PlayerIDQueue();
                     $('#tc-refresh').prop('checked', true);
                     processRefreshQueue(queue);
@@ -548,7 +566,198 @@ var data = data || {};
                 }
             }
         }
-}
+    }
+
+    /**
+    * Returns cached player data, calling Torn API if cache hit is missed.
+    *
+    * @param {string} playerID
+    */
+    async function callCache(playerID, recurse = false){
+        let factionData = {};
+        let playerData = {};
+        let faction_id = 0;
+
+        if (!(playerID in apiDataCache) || recurse == true){
+            if( !tornPdaMode && develCheck ) console.debug('Missed cache for ' + playerID);
+            // Call faction API endpoint async, if applicable.
+            if (window.location.href.startsWith('https://www.torn.com/factions.php')){
+                let searchParams = new URLSearchParams(window.location.search);
+                if (searchParams.has('ID')){
+                    faction_id = (searchParams.get('ID'));
+                }
+                factionData = await callTornAPI('faction', faction_id, 'basic,timestamp');
+                saveCacheData(factionData);
+            }
+
+            // Call user API endpoint async
+            playerData = await callTornAPI('user', playerID, 'basic,profile,timestamp');
+        } else {
+            if( !tornPdaMode && develCheck ) console.debug('Cache hit for ' + apiDataCache[playerID].name + ' (' + playerID + ')');
+            let now = new Date();
+            playerData = apiDataCache[playerID];
+
+            // Check timestamp for old data.
+            let delta = (Math.round(now / 1000) - playerData.timestamp);
+            if (delta > 30){
+                if( !tornPdaMode && develCheck ) console.debug('Cache expired for ' + apiDataCache[playerID].name + ' (' + playerID + ')');
+                playerData = await callCache(playerID, true);
+            }
+        }
+
+        saveCacheData(playerData);
+
+        return new Promise((resolve) => {
+            setTimeout(()=>{
+                resolve(playerData);
+            }, data.apiQueryDelay);
+        });
+    }
+
+    /**
+      * Calls Torn API Endpoints.
+      *
+      * @param {string} type
+      * @param {string} id
+      * @param {string} selections
+      */
+    function callTornAPI(type, id = '', selections=''){
+        loadData();
+        return new Promise((resolve, reject ) => {
+            setTimeout(async () => {
+                let baseURL = 'https://api.torn.com/';
+                let streamURL = baseURL + type + '/' + id + '?selections=' + selections + '&key=' + data.apiKey + '&comment=TornCat';
+                if( !tornPdaMode && develCheck ) console.debug('Making an API call to ' + streamURL);
+
+                // Reject if key isn't set.
+                if (data.apiKey == undefined || data.apiKey == '') {
+                    let error = {
+                        code: 1,
+                        error: 'Key is empty'
+                    };
+                    reject(error);
+                }
+
+                $.getJSON(streamURL)
+                    .done((result) => {
+                        if (result.error != undefined){
+                            reject(result.error);
+                        } else {
+                            data.queries++;
+                            saveData();
+                            resolve(result);
+                        }
+                    })
+                    .fail(function( jqxhr, textStatus, error ) {
+                        var err = textStatus + ', ' + error;
+                        reject(err);
+                    });
+
+            }, data.apiQueryDelay);
+        });
+    }
+
+    /**
+      * Saves Torn API data to local cache.
+      *
+      * @param {Object} data
+      */
+    function saveCacheData(response){
+        let playerData = {};
+        if ('members' in response){
+            // Process faction members' data.
+            let keys = Object.keys(response.members);
+            keys.forEach(playerID =>{
+                playerData = response.members[playerID];
+                playerData.timestamp = response.timestamp;
+                apiDataCache[playerID] = playerData;
+            });
+        } else {
+            // Process single player data.
+            apiDataCache[response.player_id] = response;
+        }
+    }
+
+    /**
+     * Updates a player's row content with API data.
+     */
+    function updatePlayerContent(selector, playerData){
+        let statusColor = playerData.status.color;
+        let offlineCheck = $('#tc-filter-offline').prop('checked');
+        // Apply highlight.
+        $(selector).toggleClass('torncat-update');
+
+        // Remove highlight after a delay.
+        setTimeout(()=>{
+            $(selector).toggleClass('torncat-update');
+        }, data.apiQueryDelay * 2);
+
+        // Update row HTML.
+        let newHtml = '<span class="d-hide bold">Status:</span><span class="t-' + statusColor + '">' + playerData.status.state + '</span>';
+        $(selector).find('div.status').html(newHtml);
+        $(selector).find('div.status').css('color', statusColor);
+
+        // Update status icon.
+        switch (playerData.last_action.status) {
+        case 'Offline':
+            $(selector).find('ul#iconTray.singleicon').find('li').first().attr('id','icon2_');
+            if (offlineCheck && !($(selector).first().hasClass('torncat-hide-offline'))){
+                $(selector).first().addClass('torncat-hide-offline');
+                if( !tornPdaMode && develCheck ) console.log('TCAF: ' + playerData.name + ' went offline');
+            }
+            break;
+        case 'Online':
+            $(selector).find('ul#iconTray.singleicon').find('li').first().attr('id','icon1_');
+            if (offlineCheck && ($(selector).first().hasClass('torncat-hide-offline'))){
+                $(selector).first().removeClass('torncat-hide-offline');
+                if( !tornPdaMode && develCheck ) console.log('TCAF: ' + playerData.name + ' came online');
+            }
+            break;
+        case 'Idle':
+            $(selector).find('ul#iconTray.singleicon').find('li').first().attr('id','icon62_');
+            if (offlineCheck && !($(selector).first().hasClass('torncat-hide-offline'))){
+                $(selector).first().addClass('torncat-hide-offline');
+                if( !tornPdaMode && develCheck ) console.log('TCAF: ' + playerData.name + ' became idle');
+            }
+            break;
+        }
+
+        // Update HTML classes to show/ hide row.
+        if ($('#tc-filter-revive').prop('checked')) {
+            // Hide traveling
+            if (playerData.status.color == 'blue') {
+                if (!($(selector).first().hasClass('torncat-hide-revive'))){
+                    $(selector).first().addClass('torncat-hide-revive');
+                    if( !tornPdaMode && develCheck ) console.debug('TCAF: ' + playerData.name + ' is now travelling');
+                }
+            }
+            // Hide Okay
+            if (playerData.status.color == 'green') {
+                if (!($(selector).first().hasClass('torncat-hide-revive'))){
+                    $(selector).first().addClass('torncat-hide-revive');
+                    if( !tornPdaMode && develCheck ) console.debug('TCAF: ' + playerData.name + ' is Okay and no longer a revivable target.');
+                }
+            }
+            return;
+        }
+
+        if ($('#tc-filter-attack').prop('checked')) {
+            // Hide traveling
+            if (playerData.status.color == 'blue') {
+                if (!($(selector).first().hasClass('torncat-hide-attack'))){
+                    $(selector).first().addClass('torncat-hide-attack');
+                    if( !tornPdaMode && develCheck ) console.debug('TCAF: ' + playerData.name + ' is now travelling');
+                }
+            }
+            // Hide anyone else not OK
+            if (playerData.status.color == 'red') {
+                if (!($(selector).first().hasClass('torncat-hide-revive'))){
+                    $(selector).first().addClass('torncat-hide-revive');
+                    if( !tornPdaMode && develCheck ) console.debug('TCAF: ' + playerData.name + ' is no longer an attackable target.');
+                }
+            }
+        }
+    }
 
 
 })();
@@ -590,7 +799,7 @@ function loadData(){
  * Save localStorage data.
  */
 function saveData(){
-    console.log('TornCAT Active Filters local data saved');
+    console.log('TCAF local data saved');
     localStorage.setItem(localStorageLocation, JSON.stringify(data));
 }
 
