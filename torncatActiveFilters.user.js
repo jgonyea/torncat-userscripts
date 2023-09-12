@@ -410,27 +410,23 @@ var data = data || {};
      */
     function toggleUserRow(toggleType){
         let selector = {
+            "fallen": ".user-red-status",
+            "federal": ".user-red-status",
+            "hospital": ".user-red-status",
             "idle": "li [id^='icon62_']",
             "offline": "li [id^='icon2_']",
-            "hospital": ".user-red-status",
-            "federal": ".user-red-status",
-            "fallen": ".user-red-status",
             "okay": ".user-green-status"
-        }
-        
-        let redSelector = '.user-red-status';
-        let greenSelector = '.user-green-status';
-        let blueSelector = '.user-blue-status';
+        };
 
         if (window.location.href.match('factions.php')) {
             selector = {
+                "fallen": ".ellipsis.fallen",
+                "federal": ".ellipsis.federal",
+                "hospital": ".ellipsis.hospital",
                 "idle": "li [id*='idle-user']",
                 "offline": "li [id*='offline-user']",
-                "hospital": ".user-red-status",
-                "federal": ".user-red-status",
-                "fallen": ".user-red-status",
-                "okay": ".user-green-status"
-            }
+                "okay": ".ellipsis.okay"
+            };
             
             redSelector = '.ellipsis.not-okay';
             greenSelector = '.ellipsis.okay';
